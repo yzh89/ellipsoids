@@ -7,7 +7,7 @@ classdef CVXController < elltool.exttbx.IExtTBXController
     end
     %
     methods (Access=private)
-        function prepPrecVec=getPrepPrecision(self,absTol,relTol)
+        function prepPrecVec=getPrepPrecision(self,absTol,relTol) %#ok<INUSL>
             prepPrecVec=[0, 0, self.TOL_FACTOR*relTol];
         end
     end
@@ -33,12 +33,10 @@ classdef CVXController < elltool.exttbx.IExtTBXController
         end
         %
         function isPositive=isSetUp(self)
+            import elltool.exttbx.cvx.CVXController;
             if self.isOnPath()
-                cvxConfFileName=[modgen.path.rmlastnpathparts(prefdir,1),...
-                    filesep,self.CVX_PREF_FILE_NAME];
-                %
-                isPositive=modgen.system.ExistanceChecker.isFile(...
-                    cvxConfFileName);
+                cvxPrefFileName=CVXController.getCVXPrefFileName();
+                isPositive=modgen.io.isfile(cvxPrefFileName);
             else
                 isPositive=false;
             end
@@ -46,7 +44,7 @@ classdef CVXController < elltool.exttbx.IExtTBXController
         %
         function isPositive=isOnPath(self)
             isPositive=modgen.system.ExistanceChecker.isFile(...
-                self.CVX_SETUP_FUNC_NAME);
+                which(self.CVX_SETUP_FUNC_NAME));
         end
         %
         function setUp(self)
@@ -71,7 +69,7 @@ classdef CVXController < elltool.exttbx.IExtTBXController
                 horLineStr=['\n',repmat('-',1,N_HOR_LINE_CHARS),'\n'];
                 msgStr=sprintf(['\n',horLineStr,...
                     '\nCVX is not found!!! \n',...
-                    'Please put CVX into "cvx" ',...
+                    'Please put CVX into "externals\cvx" ',...
                     'folder next to "products" folder ',horLineStr]);
                 modgen.common.throwerror('cvxNotFound',msgStr);
             end
@@ -87,6 +85,11 @@ classdef CVXController < elltool.exttbx.IExtTBXController
     %
     %
     methods(Static)
+        function fileName=getCVXPrefFileName()
+            ellTbxInstallDir=fileparts(which('s_install'));            
+            fileName= [ellTbxInstallDir,filesep,...
+                sprintf('cvx_prefs_%s.mat',lower(computer))];
+        end
         function setSolver(solverName)
             cvx_solver(solverName);
         end

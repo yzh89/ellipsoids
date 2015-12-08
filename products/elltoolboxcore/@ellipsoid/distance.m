@@ -1,38 +1,38 @@
 function [distValArray, statusArray] = distance(ellObjArr, objArr, isFlagOn)
 %
-% DISTANCE - computes distance between the given ellipsoid (or array of 
+% DISTANCE - computes distance between the given ellipsoid (or array of
 %            ellipsoids) to the specified object (or arrays of objects):
 %            vector, ellipsoid, hyperplane or Polyhedron.
-%            
+%
 % Input:
 %   regular:
-%       ellObjArr: ellipsoid [nDims1, nDims2,..., nDimsN] -  array of  
+%       ellObjArr: ellipsoid [nDims1, nDims2,..., nDimsN] -  array of
 %          ellipsoids of the same dimension.
-%       objArray: double / ellipsoid / hyperplane / Polyhedron [nDims1, 
+%       objArray: double / ellipsoid / hyperplane / Polyhedron [nDims1,
 %           nDims2,..., nDimsN] - array of vectors or ellipsoids or
 %           hyperplanes or Polyhedrons. If number of elements in objArray
-%           is more than 1, then it must be equal to the number of elements 
+%           is more than 1, then it must be equal to the number of elements
 %           in ellObjArr.
 %
 %   optional:
-%       isFlagOn: logical[1,1] - if true then distance is  computed in  
-%           ellipsoidal metric, if false - in Euclidean metric (by default 
+%       isFlagOn: logical[1,1] - if true then distance is  computed in
+%           ellipsoidal metric, if false - in Euclidean metric (by default
 %           isFlagOn=false).
 %
 % Output:
 %   regular:
-%     distValArray: double [nDims1, nDims2,..., nDimsN] - array of pairwise 
+%     distValArray: double [nDims1, nDims2,..., nDimsN] - array of pairwise
 %           calculated distances.
 %           Negative distance value means
 %               for ellipsoid and vector: vector belongs to the ellipsoid,
-%               for ellipsoid and hyperplane: ellipsoid intersects the 
+%               for ellipsoid and hyperplane: ellipsoid intersects the
 %                   hyperplane.
-%               Zero distance value means for ellipsoid and vector: vector 
+%               Zero distance value means for ellipsoid and vector: vector
 %                   is aboundary point of the ellipsoid,
-%               for ellipsoid and hyperplane: ellipsoid  touches the 
+%               for ellipsoid and hyperplane: ellipsoid  touches the
 %                   hyperplane.
 %   optional:
-%       statusArray: double [nDims1, nDims2,..., nDimsN] - array of time of 
+%       statusArray: double [nDims1, nDims2,..., nDimsN] - array of time of
 %           computation of ellipsoids-vectors or ellipsoids-ellipsoids
 %           distances, or status of cvx solver for ellipsoids-Polyhedrons
 %           distances.
@@ -41,26 +41,26 @@ function [distValArray, statusArray] = distance(ellObjArr, objArr, isFlagOn)
 %  1. Lin, A. and Han, S. On the Distance between Two Ellipsoids.
 %     SIAM Journal on Optimization, 2002, Vol. 13, No. 1 : pp. 298-308
 %  2. Stanley Chan, "Numerical method for Finding Minimum Distance to an
-%     Ellipsoid". 
+%     Ellipsoid".
 %     http://videoprocessing.ucsd.edu/~stanleychan/publication/...
 %     unpublished/Ellipse.pdf
-% 
+%
 % Example:
 %   ellObj = ellipsoid([-2; -1], [4 -1; -1 1]);
 %   tempMat = [1 1; 1 -1; -1 1; -1 -1]';
 %   distVec = ellObj.distance(tempMat)
-% 
+%
 %   distVec =
-% 
+%
 %        2.3428    1.0855    1.3799    -1.0000
 %
 %
-% $Author: Alex Kurzhanskiy  <akurzhan@eecs.berkeley.edu> $    
+% $Author: Alex Kurzhanskiy  <akurzhan@eecs.berkeley.edu> $
 % $Date: 2004-2008 $
-% $Copyright:  The Regents of the University of California 
+% $Copyright:  The Regents of the University of California
 %              2004-2008 $
 %
-% $Author:  Vitaly Baranov  <vetbar42@gmail.com> $    
+% $Author:  Vitaly Baranov  <vetbar42@gmail.com> $
 % $Date: 31-10-2012 $
 % $Copyright: Moscow State University,
 %            Faculty of Computational Mathematics and Computer Science,
@@ -94,7 +94,8 @@ else
 end
 end
 
-function [ellDist timeOfCalculation] = findEllMetDistance(ellObj1,ellObj2,nMaxIter,absTol)
+function [ellDist,timeOfCalculation] = findEllMetDistance(ellObj1,...
+    ellObj2,nMaxIter,absTol)
 % FINDEELLELLDISTANCE - computes the distance between two ellipsoids
 %                       in ellipsoidal metric
 % Input:
@@ -112,8 +113,8 @@ function [ellDist timeOfCalculation] = findEllMetDistance(ellObj1,ellObj2,nMaxIt
 %            System Analysis Department 2012 $
 %
 %
-[cen1Vec ellQ1Mat]=double(ellObj1);
-[cen2Vec ellQ2Mat]=double(ellObj2);
+[cen1Vec,ellQ1Mat]=double(ellObj1);
+[cen2Vec,ellQ2Mat]=double(ellObj2);
 if rank(ellQ1Mat) < size(ellQ1Mat, 2)
     ellQ1Mat = ellipsoid.regularize(ellQ1Mat,ellObj1.absTol);
 end
@@ -124,13 +125,13 @@ newCen1Vec=sqrInvQ1Mat*cen1Vec;
 newQ2Mat=sqrInvQ1Mat*ellQ2Mat*sqrInvQ1Mat;
 newCen2Vec=sqrInvQ1Mat*cen2Vec;
 newQ2Mat=0.5*(newQ2Mat+newQ2Mat.');
-[ellDist timeOfCalculation]=...
+[ellDist,timeOfCalculation]=...
     computeEllEllDistance(ellipsoid(newCen1Vec,newQ1Mat),...
     ellipsoid(newCen2Vec,newQ2Mat),nMaxIter,absTol);
 end
 %
 
-function [ellDist timeOfCalculation] = computeEllEllDistance(ellObj1,ellObj2,nMaxIter,absTol)
+function [ellDist,timeOfCalculation] = computeEllEllDistance(ellObj1,ellObj2,nMaxIter,absTol)
 % COMPUTEELLELLDISTANCE - computes the distance between two ellipsoids
 % Input:
 %       ellObj1:  ellipsoid: [1,1] - first ellipsoid,
@@ -148,6 +149,7 @@ function [ellDist timeOfCalculation] = computeEllEllDistance(ellObj1,ellObj2,nMa
 %            System Analysis Department 2012 $
 %
 %
+import gras.geom.ell.quadmat;
 tic;
 [ellCenter1Vec, ellQ1Mat] = double(ellObj1);
 [ellCenter2Vec, ellQ2Mat] = double(ellObj2);
@@ -182,12 +184,12 @@ else
         circleCentersDiffVec=circleCenter2Vec-circleCenter1Vec;
         ellCircleCentersDiff1Vec=circleCenter1Vec-ellCenter1Vec;
         ellCircleCentersDiff2Vec=circleCenter1Vec-ellCenter2Vec;
-        aCoeff1=circleCentersDiffVec.'*ellQ1Mat*circleCentersDiffVec;
+        aCoeff1=quadmat(ellQ1Mat,circleCentersDiffVec);
         bCoeff1=2*circleCentersDiffVec.'*ellQ1Mat*ellCircleCentersDiff1Vec;
-        cCoeff1=ellCircleCentersDiff1Vec.'*ellQ1Mat*ellCircleCentersDiff1Vec-1;
-        aCoeff2=circleCentersDiffVec.'*ellQ2Mat*circleCentersDiffVec;
+        cCoeff1=quadmat(ellQ1Mat,ellCircleCentersDiff1Vec)-1;
+        aCoeff2=quadmat(ellQ2Mat,circleCentersDiffVec);
         bCoeff2=2*circleCentersDiffVec.'*ellQ2Mat*ellCircleCentersDiff2Vec;
-        cCoeff2=ellCircleCentersDiff2Vec.'*ellQ2Mat*ellCircleCentersDiff2Vec-1;
+        cCoeff2=quadmat(ellQ2Mat,ellCircleCentersDiff2Vec)-1;
         %
         stepSize1=fzero(fSquareFunc(aCoeff1,bCoeff1,cCoeff1),[0,1]);
         stepSize2=fzero(fSquareFunc(aCoeff2,bCoeff2,cCoeff2),[0,1]);
@@ -230,9 +232,8 @@ else
 end
 timeOfCalculation=toc;
 end
-
-%%%%%%%%
-function [ distEllVec timeOfComputation ] = computeEllVecDistance(ellObj,...
+%
+function [ distEllVec,timeOfComputation ] = computeEllVecDistance(ellObj,...
     vectorVec,nMaxIter,absTol, relTol,isFlagOn)
 % COMPUTEELLVECDISTANCE - computes the distance between an ellipsoid and a
 %                         vector
@@ -254,12 +255,13 @@ function [ distEllVec timeOfComputation ] = computeEllVecDistance(ellObj,...
 %
 %
 import modgen.common.throwerror
+import gras.geom.ell.invmat;
 tic;
 [ellCenterVec, ellQMat] = double(ellObj);
 if rank(ellQMat) < size(ellQMat, 2)
     ellQMat = ellipsoid.regularize(ellQMat,absTol);
 end
-ellQMat=ell_inv(ellQMat);
+ellQMat=invmat(ellQMat);
 vectorVec=vectorVec-ellCenterVec;
 vectorEllVal=realsqrt(vectorVec'*ellQMat*vectorVec);
 if ( vectorEllVal < (1-absTol) )
@@ -267,7 +269,7 @@ if ( vectorEllVal < (1-absTol) )
 elseif (abs(vectorEllVal-1)<absTol)
     distEllVec=0;
 elseif ~isFlagOn
-    [unitaryMat diagMat]=eig(ellQMat);
+    [unitaryMat,diagMat]=eig(ellQMat);
     unitaryMat=transpose(unitaryMat);
     distEllVec=diag(diagMat);
     qVec=unitaryMat*vectorVec;
@@ -416,12 +418,12 @@ if (nEllObj > 1) && (nEllObj == nVec)
     vecCArray=reshape(augxCArray(1,:),ellSizeVec);
     fComposite=@(ellObj,xVec,absTol,relTol)computeEllVecDistance(...
         ellObj,xVec{1},N_MAX_ITER,absTol,relTol,isFlagOn);
-    [distArray timeArray] =arrayfun(fComposite,ellObjArray,vecCArray,...
+    [distArray,timeArray] =arrayfun(fComposite,ellObjArray,vecCArray,...
         absTolArray,relTolArray);
 elseif (nEllObj > 1)
     fCompositeOneVec=@(ellObj,absTol,relTol)computeEllVecDistance(...
         ellObj,vecArray,N_MAX_ITER,absTol,relTol,isFlagOn);
-    [distArray timeArray] =arrayfun(fCompositeOneVec,ellObjArray,...
+    [distArray,timeArray] =arrayfun(fCompositeOneVec,ellObjArray,...
         absTolArray,relTolArray);
 else
     vecCArray=num2cell(vecArray,1);
@@ -430,7 +432,7 @@ else
     end
     fCompositeOneEll=@(xVec)computeEllVecDistance(ellObjArray,...
         xVec{1},N_MAX_ITER,absTolArray,relTolArray,isFlagOn);
-    [distArray timeArray] =arrayfun(fCompositeOneEll,vecCArray);
+    [distArray,timeArray] =arrayfun(fCompositeOneEll,vecCArray);
 end
 end
 
@@ -479,10 +481,10 @@ if (nEllObj1 > 1) && (nEllObj2 > 1)
     fCompositeFlagOff=@(ellObj1,ellObj2,absTol)computeEllEllDistance(...
         ellObj1,ellObj2,N_MAX_ITER,absTol);
     if isFlagOn
-        [distEllEllArray timeOfCalculationArray] =arrayfun(...
+        [distEllEllArray,timeOfCalculationArray] =arrayfun(...
             fCompositeFlagOn,ellObj1Array,ellObj2Array,absTolArray);
     else
-        [distEllEllArray timeOfCalculationArray] =arrayfun(...
+        [distEllEllArray,timeOfCalculationArray] =arrayfun(...
             fCompositeFlagOff,ellObj1Array,ellObj2Array,absTolArray);
     end
 elseif (nEllObj1 > 1)
@@ -492,10 +494,10 @@ elseif (nEllObj1 > 1)
     fCompositeOneEll2FlagOff=@(ellObj1,absTol)computeEllEllDistance(...
         ellObj1,ellObj2Array,N_MAX_ITER,absTol);
     if isFlagOn
-        [distEllEllArray timeOfCalculationArray] =arrayfun(...
+        [distEllEllArray,timeOfCalculationArray] =arrayfun(...
             fCompositeOneEll2FlagOn,ellObj1Array,absTolArray);
     else
-        [distEllEllArray timeOfCalculationArray] =arrayfun(...
+        [distEllEllArray,timeOfCalculationArray] =arrayfun(...
             fCompositeOneEll2FlagOff,ellObj1Array,absTolArray);
     end
 else
@@ -505,10 +507,10 @@ else
     fCompositeOneEll1FlagOff=@(ellObj2,absTol)computeEllEllDistance(...
         ellObj1Array,ellObj2,N_MAX_ITER,absTol);
     if isFlagOn
-        [distEllEllArray timeOfCalculationArray] =arrayfun(...
+        [distEllEllArray,timeOfCalculationArray] =arrayfun(...
             fCompositeOneEll1FlagOn,ellObj2Array,absTolArray);
     else
-        [distEllEllArray timeOfCalculationArray] =arrayfun(...
+        [distEllEllArray,timeOfCalculationArray] =arrayfun(...
             fCompositeOneEll1FlagOff,ellObj2Array,absTolArray);
     end
 end
@@ -517,13 +519,14 @@ end
 %%%%%%%%
 %
 function distEllHpVal = findEllHpDist(ellObj, hpObj,isFlagOn)
+import gras.geom.ell.quadmat;
 [vPar, cPar] = parameters(hpObj);
 if cPar < 0
     cPar = -cPar;
     vPar = -vPar;
 end
 if isFlagOn
-    sr = realsqrt(vPar' * (ellObj.shapeMat) * vPar);
+    sr=realsqrt(quadmat(ellObj.shapeMat,vPar));
 else
     sr = realsqrt(vPar' * vPar);
 end
@@ -547,7 +550,7 @@ import elltool.conf.Properties;
 import modgen.common.throwerror
 import elltool.logging.Log4jConfigurator;
 persistent logger;
-  import modgen.common.throwerror
+import modgen.common.throwerror
 
 ellArrSizeVec=size(ellObjArray);
 hpArrSizeVec=size(hpObjArray);
@@ -562,7 +565,7 @@ end
 
 ellDimArray = dimension(ellObjArray);
 hpDimArray = dimension(hpObjArray);
-  
+
 if (~all(ellDimArray(1)==ellDimArray(:)))
     throwerror('wrongInput',...
         'ellipsoids must be of the same dimension.');
@@ -604,6 +607,7 @@ end
 
 %%%%%%%%
 function [ distVal, cvxStat] = findEllPolDist(ellObj,polObj,isFlagOn)
+import gras.geom.ell.invmat;
 absTol=ellObj.getAbsTol();
 [qPar, QPar] = parameters(ellObj);
 aMat=polObj.H(:,1:end-1);
@@ -611,10 +615,10 @@ bVec=polObj.H(:,end);
 if size(QPar, 2) > rank(QPar)
     QPar = ellipsoid.regularize(QPar,absTol);
 end
-QPar  = ell_inv(QPar);
+QPar  = invmat(QPar);
 QPar  = 0.5*(QPar + QPar');
-mx1=dimension(ellObj);
-
+mx1=dimension(ellObj); %#ok<NASGU>
+%
 cvx_begin sdp
 variable x(mx1, 1)
 variable y(mx1, 1)
@@ -625,7 +629,7 @@ else
 end
 minimize(f)
 subject to
-x'*QPar*x + 2*(-QPar*qPar)'*x + (qPar'*QPar*qPar - 1) <= 0
+x'*QPar*x + 2*(-QPar*qPar)'*x + (qPar'*QPar*qPar - 1) <= 0 %#ok<*NOPRT>
 aMat*y - bVec <= 0
 cvx_end
 
@@ -652,7 +656,7 @@ function [distEllPolArray, statusArray] = computeEllPolytDist(ellObjArray, polOb
 import elltool.conf.Properties;
 import elltool.logging.Log4jConfigurator;
 persistent logger;
-  import modgen.common.throwerror
+import modgen.common.throwerror
 
 ellArrSizeVec = size(ellObjArray);
 polArrSizeVec = size(polObj);
@@ -668,7 +672,7 @@ end
 dimEllArray=dimension(ellObjArray);
 dimPolArray=zeros(size(polObj));
 for iPolytopes = 1:size(dimPolArray,2)
-	dimPolArray(iPolytopes) = polObj(iPolytopes).Dim;
+    dimPolArray(iPolytopes) = polObj(iPolytopes).Dim;
 end
 
 if ~all(dimEllArray(1)==dimEllArray(:))
@@ -678,7 +682,7 @@ if ~all(dimPolArray(1)==dimPolArray(:))
     throwerror('wrongInput','Polyhedrons must be of the same dimension.');
 end
 if ~(dimPolArray(1) == dimEllArray(1))
-	 throwerror('wrongInput','Polyhedrons and ellips must be of the same dimension.');
+    throwerror('wrongInput','Polyhedrons and ellips must be of the same dimension.');
 end
 
 if Properties.getIsVerbose()
@@ -698,15 +702,15 @@ if (nEllObj > 1) && (nPolObj > 1)
     distEllPolArray = zeros(size(polArrSizeVec));
     statusArray = cell(size(polArrSizeVec));
     for iObj = 1:nPolObj
-    [distEllPolArray(iObj), statusArray{iObj}]=...
-        findEllPolDist(ellObjArray(iObj),polObj(iObj),isFlagOn);
+        [distEllPolArray(iObj), statusArray{iObj}]=...
+            findEllPolDist(ellObjArray(iObj),polObj(iObj),isFlagOn);
     end
 elseif (nPolObj > 1)
     distEllPolArray = zeros(size(polArrSizeVec));
     statusArray = cell(size(polArrSizeVec));
     for iObj = 1:nPolObj
-    [distEllPolArray(iObj), statusArray{iObj}]=...
-        findEllPolDist(ellObjArray,polObj(iObj),isFlagOn);
+        [distEllPolArray(iObj), statusArray{iObj}]=...
+            findEllPolDist(ellObjArray,polObj(iObj),isFlagOn);
     end
 else
     fComputeDist=@(ellObj) findEllPolDist(ellObj,polObj,isFlagOn);
@@ -714,6 +718,3 @@ else
         arrayfun(fComputeDist,ellObjArray);
 end
 end
-
-
-

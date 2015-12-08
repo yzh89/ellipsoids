@@ -12,4 +12,7 @@ resList{10}=modgen.profiling.test.run_tests;
 resList{11}=modgen.pcalc.test.run_tests(varargin{:});
 resList{12}=modgen.microsoft.test.run_tests;
 resList{13}=modgen.graphics.test.run_tests(varargin{:});
+resList{14}=modgen.io.test.run_tests(varargin{:});
+resList{15}=modgen.algo.test.run_tests();
+resList{16}=modgen.system.test.run_tests();
 results=[resList{:}];

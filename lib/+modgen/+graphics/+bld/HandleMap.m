@@ -14,16 +14,16 @@ classdef HandleMap<modgen.graphics.bld.AElementWithPropsMap
             end
             handleVec=varargin{1};
             modgen.common.checkvar(handleVec,[...
-                'isreal(x)&&isnumeric(x)&&isequal(size(x),'...
+                'all(ishandle(x))&&isequal(size(x),'...
                 mat2str(sizeVec) ')']);
-            handleVec=double(handleVec);
             modgen.common.checkvar(handleVec,'all(ishandle(x))');
         end
     end
     
     methods
         function self=HandleMap(keyCVec,handleVec)
-            self=self@modgen.graphics.bld.AElementWithPropsMap(keyCVec,handleVec);
+            self=self@modgen.graphics.bld.AElementWithPropsMap(keyCVec,...
+                handleVec);
         end
     end
 end

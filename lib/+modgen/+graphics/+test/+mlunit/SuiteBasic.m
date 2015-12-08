@@ -3,11 +3,36 @@ classdef SuiteBasic < mlunitext.test_case
     end
     
     methods
+        function tear_down(~)
+            close all;
+        end
         function self = SuiteBasic(varargin)
             self = self@mlunitext.test_case(varargin{:});
         end
         function self = set_up_param(self,varargin)
             %
+        end
+        function testSaveFigures(~)
+            import modgen.graphics.savefigures;
+            resFolderName=modgen.test.TmpDataManager.getDirByCallerKey();
+            hFig=figure();
+            hAxes=axes('Parent',hFig);
+            plot(hAxes,1:10,sin(1:10));
+            formatNameList={'png','jpeg'};
+            fileNameList={'1'};
+            savefigures(hFig,resFolderName,...
+                formatNameList,fileNameList);
+            isOk=(numel(dir([resFolderName,filesep,'*.png']))==1)&&...
+                (numel(dir([resFolderName,filesep,'*.jpeg']))==1);
+            mlunitext.assert(isOk);
+            %
+            modgen.io.rmdir(resFolderName,'s');
+            isOk=numel(dir(resFolderName))==0;
+            mlunitext.assert(isOk);
+            savefigures(gobjects(1,0),resFolderName,...
+                formatNameList,{});
+            isOk=numel(dir(resFolderName))==0;
+            mlunitext.assert(isOk);            
         end
         %
         function testLightAxis(~)
@@ -26,7 +51,7 @@ classdef SuiteBasic < mlunitext.test_case
             z2Mat=z1Mat+10;
             hold on;
             h2Surf=surf(xVec,yVec,z2Mat,'Parent',hAxes);
-            
+            %
             v1Mat = [2 4 1; ...
                 2 8 1.1; ...
                 8 4 1.2; ...
@@ -111,10 +136,11 @@ classdef SuiteBasic < mlunitext.test_case
                 cMat,'Parent',hAxes);
             view(3);
             hParent=get(h,'Parent');
-            mlunitext.assert_equals(hAxes,hParent);
+            mlunitext.assert(isequal(hAxes,hParent));
             delete(hFig);
         end
         function testPlottsForImageType(~)
+            import modgen.graphics.plotts;
             hFig=figure();
             tVec=(0:0.01:1000)+datenum('2-Jan-2007');
             valIndMat=[2*sin(tVec/80);cos(tVec/90);abs(sin(tVec/100+0.1))];
@@ -134,7 +160,7 @@ classdef SuiteBasic < mlunitext.test_case
             h=unique(h);
             mlunitext.assert_equals(1,numel(h));
             hParent=get(h,'Parent');
-            mlunitext.assert_equals(hAxes,hParent);
+            mlunitext.assert(isequal(hAxes,hParent));
             delete(hFig);
         end
     end

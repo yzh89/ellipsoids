@@ -142,45 +142,23 @@ classdef RelationDataPlotter<handle
             %           "saveas" function, default value is 'fig';
             %
             %
-            import modgen.logging.log4j.Log4jConfigurator;
-            import modgen.common.type.simple.checkcellofstr;
-            import modgen.common.genfilename;
+            mp=self.figHMap;
+            hFigureList=mp.values;
+            if isempty(hFigureList)
+                hFigureVec=gobjects(1,0);
+            else
+                hFigureVec=[hFigureList{:}];
+            end
+            %
+            fileNameList=cellfun(@modgen.common.genfilename,...
+                mp.keys,'UniformOutput',false);
+            %
             if nargin<3
                 formatNameList={'fig'};
             end
-            %refresh figures
-            drawnow expose;
             %
-            logger=Log4jConfigurator.getLogger();
-            mp=self.figHMap;
-            handleVec=cell2mat(mp.values);
-            figureKeyList=mp.keys;
-            nFigures=length(figureKeyList);
-            formatNameList=checkcellofstr(formatNameList);
-            nFormats=length(formatNameList);
-            for iFigure=1:nFigures
-                hFigure=handleVec(iFigure);
-                if ~ishandle(hFigure)
-                    logger.warn(sprintf(...
-                        ['Handle %d doesn''t exists, probably figure ',...
-                        'has been closed manually'],hFigure));
-                else
-                    shortFigFileName=genfilename(figureKeyList{iFigure});
-                    for iFormat=1:nFormats
-                        formatName=formatNameList{iFormat};
-                        figFileName=[resFolderName,filesep,...
-                            shortFigFileName,'.',formatName];
-                        msgStr=['saving file ',figFileName,' to disk'];
-                        logger.debug([msgStr,'...']);
-                        saveas(hFigure,figFileName,formatName);
-                        if ~modgen.system.ExistanceChecker.isFile(figFileName)
-                            error([upper(mfilename),':wrongInput'],...
-                                'file %s was not created',figFileName);
-                        end
-                        logger.debug([msgStr,': done']);
-                    end
-                end
-            end
+            modgen.graphics.savefigures(hFigureVec,resFolderName,...
+                formatNameList,fileNameList)
         end
         %%
         function plotGeneric(self,rel,...
@@ -265,6 +243,7 @@ classdef RelationDataPlotter<handle
             import modgen.common.throwerror;
             import modgen.struct.updateleaves;
             import modgen.common.type.simple.checkcelloffunc;
+            import modgen.common.throwwarn;
             %
             [~,~,axesPostPlotFunc,isAutoHoldOn,isAxesPostPlotFuncSpec]=...
                 modgen.common.parseparext(...
@@ -357,7 +336,8 @@ classdef RelationDataPlotter<handle
                     for iAxes=1:nUAxis
                         axesKey=axisUKeyList{iAxes};
                         hAxes=axesMap(axesKey);
-                        axisToPlotMap(axesKey)=findobj('Parent',hAxes).';
+                        axisToPlotMap(axesKey)=findall(hAxes,'Parent',...
+                            hAxes).';
                     end
                 end
                 
@@ -410,15 +390,38 @@ classdef RelationDataPlotter<handle
                     for iAxes=1:nUAxis
                         plotHandleUKeyList{iAxes}=[plotHVecList{indUAVec==iAxes}];
                         axisKey=axisUKeyList{iAxes};
-                        axisToPlotMap(axisKey)=...
-                            [axisToPlotMap(axisKey),plotHandleUKeyList{iAxes}];
+                        existHandleVec=axisToPlotMap(axisKey);
+                        newHandleVec=plotHandleUKeyList{iAxes};
+                        catHandleVec=[existHandleVec,newHandleVec];
+                        [uniqueHandleVec,indUniqueVec]=unique(catHandleVec);
+                        nCatHandles=numel(catHandleVec);
+                        if nCatHandles>numel(indUniqueVec)
+                            indNotThereVec=setdiff(1:nCatHandles,indUniqueVec);
+                            for indNotThere=indNotThereVec
+                                notThereHandle=catHandleVec(indNotThere);
+                                if ~(ishghandle(notThereHandle)&&...
+                                        strcmp(get(notThereHandle,'Type'),'text'))
+                                    parentHandle=notThereHandle.Parent;
+                                    throwwarn('wrongInput',...
+                                        ['an existing graphic object %s:%s',...
+                                        ' with parent %s:%s has been ',...
+                                        'returned by one of plotting ',...
+                                        'functions'],evalc('disp(notThereHandle)'),...
+                                        class(notThereHandle),...
+                                        evalc('disp(parentHandle)'),...
+                                        class(parentHandle));
+                                end
+                            end
+                        end
+                        %
+                        axisToPlotMap(axisKey)=uniqueHandleVec;
                     end
                 end
                 %% Check that all plotting handlers were returned by
                 % plotCreate function
                 SFigToAxes=updateleaves(...
                     self.figToAxesToHMap.toStruct(),...
-                    @(x,y)sort(findobj('Parent',x).'));
+                    @(x,y)sort(findall(x,'Parent',x).'));
                 SExpFigToAxes=updateleaves(...
                     self.figToAxesToPlotHMap.toStruct(),@(x,y)sort(x));
                 [isOk,reportStr]=modgen.struct.structcompare(...
@@ -510,7 +513,7 @@ classdef RelationDataPlotter<handle
                 figureSetPropFunc(hFigure,figureKey,indFigureSubGroup,...
                     figurePropValList{:});
                 logger.debug(['Figure ',figureKey,...
-                    ' is created, hFigure=',num2str(hFigure)]);
+                    ' is created, hFigure=',num2str(double(hFigure))]);
                 mp(figureKey)=hFigure;
                 
                 self.checkIfValueUnique(mp,'wrongFigureHandle',...

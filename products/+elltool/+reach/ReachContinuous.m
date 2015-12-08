@@ -7,9 +7,9 @@ classdef ReachContinuous < elltool.reach.AReach
     %               $Date: March-2013 $
     %           Igor Kitsenko <kitsenko@gmail.com> $
     %               $Date: May-2013 $
-    %           Peter Gagarinov <pagarinov@gmail.com> 
+    %           Peter Gagarinov <pagarinov@gmail.com>
     %               $Date: 2013-2014 $
-    %       
+    %
     % $Copyright: Moscow State University,
     %             Faculty of Computational Mathematics
     %             and Computer Science,
@@ -59,56 +59,20 @@ classdef ReachContinuous < elltool.reach.AReach
             end
         end
         %
-        function probDynObj = getProbDynamics(atStrCMat, btStrCMat,...
-                ptStrCMat, ptStrCVec, ctStrCMat, qtStrCMat, qtStrCVec,...
-                x0Mat, x0Vec, timeVec, calcPrecision, isDisturb)
-            timeVec = [min(timeVec) max(timeVec)];
-            if isDisturb
-                probDynObj = getSysWithDisturb(atStrCMat, btStrCMat,...
-                    ptStrCMat, ptStrCVec, ctStrCMat, qtStrCMat,...
-                    qtStrCVec, x0Mat, x0Vec, timeVec, calcPrecision);
-            else
-                probDynObj = getSysWithoutDisturb(atStrCMat, btStrCMat,...
-                    ptStrCMat, ptStrCVec, x0Mat, x0Vec,...
-                    timeVec, calcPrecision);
-            end
-            %
-            function probDynObj = getSysWithDisturb(atStrCMat, btStrCMat,...
-                    ptStrCMat, ptStrCVec, gtStrCMat, qtStrCMat, qtStrCVec,...
-                    x0Mat, x0Vec, timeVec, calcPrecision)
-                import gras.ellapx.lreachuncert.probdyn.*;
-                probDynObj =...
-                    LReachProblemDynamicsFactory.createByParams(...
-                    atStrCMat, btStrCMat,...
-                    ptStrCMat, ptStrCVec, gtStrCMat,...
-                    qtStrCMat, qtStrCVec, x0Mat, x0Vec,...
-                    timeVec, calcPrecision);
-            end
-            %
-            function probDynObj = getSysWithoutDisturb(atStrCMat, btStrCMat,...
-                    ptStrCMat, ptStrCVec, x0Mat, x0Vec, timeVec, calcPrecision)
-                import gras.ellapx.lreachplain.probdyn.*;
-                probDynObj =...
-                    LReachProblemDynamicsFactory.createByParams(...
-                    atStrCMat, btStrCMat,...
-                    ptStrCMat, ptStrCVec, x0Mat, x0Vec,...
-                    timeVec, calcPrecision);
-            end
-        end
     end
     %
     methods (Access = private)
         function [ellTubeRel,goodDirSetObj] = auxMakeEllTubeRel(self, probDynObj, ...
-                l0Mat, timeVec, isDisturb, approxTypeVec)
+                l0Mat, timeVec, isDisturb,absTol,relTol,approxTypeVec)
             import gras.ellapx.enums.EApproxType;
             import gras.ellapx.lreachplain.GoodDirsContinuousFactory;
             import modgen.common.throwerror;
             %
             timeVec = [min(timeVec) max(timeVec)];
             goodDirSetObj = GoodDirsContinuousFactory.create(...
-                probDynObj, timeVec(1), l0Mat, self.relTol, self.absTol);
+                probDynObj, timeVec(1), l0Mat,relTol,absTol);
             if isDisturb
-                extIntBuilder =...
+                extIntBuilder =... 
                     gras.ellapx.lreachuncert.ExtIntEllApxBuilder(...
                     probDynObj, goodDirSetObj, timeVec,...
                     self.relTol, self.absTol,...
@@ -159,15 +123,18 @@ classdef ReachContinuous < elltool.reach.AReach
         %
     end
     methods (Access=protected)
-        function [ellTubeRel,goodDirSetObj] = internalMakeEllTubeRel(self, probDynObj, l0Mat,...
-                timeVec, isDisturb, absTol, relTol, approxTypeVec)
+        function [ellTubeRel,goodDirSetObj] = internalMakeEllTubeRel(...
+                self,probDynObj,l0Mat,timeVec,isDisturb,absTol,relTol,...
+                approxTypeVec)
+            %
             import gras.ellapx.enums.EApproxType;
             import modgen.common.throwerror;
             %
             try
                 [ellTubeRel,goodDirSetObj] = self.auxMakeEllTubeRel(...
-                    probDynObj,  l0Mat, timeVec, isDisturb, ...
+                    probDynObj,l0Mat,timeVec,isDisturb,absTol,relTol,...
                     approxTypeVec);
+                %
                 if self.isbackward()
                     ellTubeRel=self.rotateEllTubeRel(ellTubeRel);
                 end
@@ -205,16 +172,39 @@ classdef ReachContinuous < elltool.reach.AReach
                     throw(friendlyMeObj);
                 end
             end
-           
+            %
             function isPos=isMatch(patternStr)
                 isPos=~isempty(strfind(meObj.identifier,patternStr));
             end
         end
+        %
+        function probDefConstr = getProbDynamicsBuilder (self, ...
+                isDisturbance, ~)
+            %
+            % input argument varargin{end - 1} is a 'timevec'; we transform 
+            % it to [min(varargin{end-1}) max(varargin{end-1})] for 
+            % Continuous systems
+            %
+            if (~isDisturbance)
+                probDefConstr = @(varargin)gras.ellapx.lreachplain. ...
+                    probdyn.LReachProblemDynamicsFactory. ...
+                    createByParams (varargin{1:end - 2}, ...
+                        [min(varargin{end-1}) max(varargin{end-1})], ...
+                        varargin{end});
+            elseif (isDisturbance)
+                probDefConstr = @(varargin)gras.ellapx.lreachuncert. ...
+                    probdyn.LReachProblemDynamicsFactory. ...
+                    createByParams (varargin{1:end - 2}, ...
+                        [min(varargin{end-1}) max(varargin{end-1})], ...
+                        varargin{end});
+            end
+        end
+        %
     end
     methods (Access = private, Static)
         function backwardStrCMat = getBackwardCMat(strCMat, tSum, isMinus)
             t = sym('t');
-            t = tSum-t;
+            t = tSum-t; %#ok<NASGU>
             %
             evCMat = cellfun(@eval, strCMat, 'UniformOutput', false);
             symIndMat = cellfun(@(x) isa(x, 'sym'), evCMat);
@@ -244,7 +234,7 @@ classdef ReachContinuous < elltool.reach.AReach
             function flipField(fieldName)
                 fieldCVec = SData.(fieldName);
                 dim = ndims(fieldCVec{1});
-                SData.(fieldName) = cellfun(@(field)flipdim(field, dim),...
+                SData.(fieldName) = cellfun(@(field)flip(field, dim),...
                     SData.(fieldName), 'UniformOutput', false);
             end
         end

@@ -89,7 +89,7 @@ classdef test_case<handle
                 modgen.common.parseparext(varargin,...
                 {'profile','marker';...
                 'off',[];...
-                'isstring(x)','isstring(x)'});
+                'ischarstring(x)','ischarstring(x)'});
             nRegs=length(reg);
             additionalParse(reg{1:min(nRegs,2)});
             %
@@ -177,7 +177,7 @@ classdef test_case<handle
             if ~isempty(self.marker)
                 s = [s, '[', self.marker, ']'];
             end
-            s = [s, '(''', self.name, ''')'];
+            s = [s, '/', self.name];
             %
         end
         
@@ -341,6 +341,7 @@ classdef test_case<handle
             %
             import modgen.common.checkmultvar;
             import modgen.common.throwerror;
+            import modgen.common.type.simple.lib.*;
             %
             isNoIdentPatternSpec=false;
             if ischar(expIdentifierList)
@@ -355,10 +356,10 @@ classdef test_case<handle
                 modgen.common.parseparext(varargin,...
                 {'causeCheckDepth','reportStr';...
                 0,'successful execution when failure is expected';...
-                'isscalar(x)&&isnumeric(x)','isstring(x)'},...
+                'isscalar(x)&&isnumeric(x)',@ischarstring},...
                 [0,1],...
                 'regDefList',{[]},...
-                'regCheckList',{'iscellstr(x)||isstring(x)'});
+                'regCheckList',{@(x)(iscellstr(x)||ischarstring(x))});
             %
             if isRegSpec
                 expMsgCodeList=reg{1};
@@ -405,7 +406,7 @@ classdef test_case<handle
                     addSuffix='';
                     addArgList={};
                 end
-                %
+                
                 mlunitext.assert_equals(true,isOk,...
                     sprintf(...
                     ['\n no match found for pattern %s',...
@@ -417,7 +418,8 @@ classdef test_case<handle
             function [isMatchVec,patternsStr]=checkCode(inpMeObj,...
                     fieldName,codeList)
                 %
-                errMsg=modgen.exception.me.obj2hypstr(inpMeObj);
+                errMsg=strrep(modgen.exception.me.obj2hypstr(inpMeObj),...
+                    '%','%%');
                 isMatchVec=cellfun(...
                     @(x)getIsCodeMatch(...
                     inpMeObj,causeCheckDepth,fieldName,x),codeList);

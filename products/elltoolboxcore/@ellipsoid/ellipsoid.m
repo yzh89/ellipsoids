@@ -8,7 +8,7 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
         nPlot2dPoints
         nPlot3dPoints
     end
-    
+    %
     methods
         function set.shapeMat(self,shMat)
             import modgen.common.throwerror;
@@ -54,6 +54,29 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
             sizeVec=horzcat(varargin{:});
             resArr=repmat(self,sizeVec);
             resArr=resArr.getCopy();
+        end
+        %
+        function resQuad = quadFunc(self)
+            % QUADFUNC computes quadratic function (x,Qx) of given
+            % ellipsoid.
+            % 
+            % Input:
+            %   regular:
+            %      self: ellipsoid[1,1]
+            %
+            % Output:
+            %   resQuad: double[1,1] - value of quadratic function
+            %
+            % Example:
+            %   ellObj = ellipsoid([1;5;7],eye(3));
+            %   quadFunc(ellObj)
+            %   
+            %   ans =
+            %
+            %        75
+            %
+            self.checkIfScalar();
+            resQuad = gras.geom.ell.quadmat(self.shapeMat,self.centerVec);
         end
         %
         function shMat=getShapeMat(self)
@@ -214,10 +237,11 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
                 ellMat.nPlot3dPoints = nPlot3dPointsVal;
             else
                 if nReg == 1
-                    checkvar(regParamList{1},@(x) isa(x,'double')&&isreal(x),...
-                        'errorTag','wrongInput:imagArgs',...
-                        'errorMessage','shapeMat matrix must be real.');
                     shMatArray = regParamList{1};
+                    shMatArray = gras.la.trytreatasreal (shMatArray);
+                    checkvar(shMatArray,@(x) isa(x,'double'),...
+                        'errorTag', 'errorMessage',...
+                        'shapeMat matrix must be real.');
                     nShDims = ndims(shMatArray);
                     shDimsVec(1:nShDims) = size(shMatArray);
                     nShRows = shDimsVec(1);
@@ -231,12 +255,14 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
                     end
                     %
                 else
-                    checkmultvar(@(x,y) isa(x,'double') && isa(y,'double') &&...
-                        isreal(x) && isreal(y),2,regParamList{1},regParamList{2},...
-                        'errorTag','wrongInput:imagArgs',...
-                        'errorMessage','centerVec and shapeMat matrix must be real.');
                     centVecArray = regParamList{1};
                     shMatArray = regParamList{2};
+                    centVecArray = gras.la.trytreatasreal(centVecArray);
+                    shMatArray = gras.la.trytreatasreal(shMatArray);
+                    checkmultvar(@(x,y) isa(x,'double') && isa(y,'double'), ...
+                        2,centVecArray,shMatArray,...
+                        'errorTag', 'errorMessage', ...
+                        'centerVec and shapeMat matrix must be real.');
                     nShDims = ndims(shMatArray);
                     nCentDims = ndims(centVecArray);
                     checkmultvar(...
@@ -278,7 +304,7 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
                 % as something like -10^(-15).
                 import modgen.common.checkmultvar;
                 checkmultvar(@(aMat, aAbsTolVal)gras.la.ismatsymm(aMat)...
-                    &&gras.la.ismatposdef(aMat,aAbsTolVal,1), 2,...
+                    &&gras.la.ismatposdef(aMat,aAbsTolVal,true), 2,...
                     shMatArray(:,:,iEll), absTolVal,...
                     'errorTag','wrongInput:shapeMat',...
                     'errorMessage', ['shapeMat matrices must be symmetric',...
@@ -341,7 +367,7 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
             %             Faculty of Computational Mathematics and Cybernetics,
             %             Science, System Analysis Department 2012-2013 $
             self.checkIfScalar();
-            absTol = self.absTol;
+            absTol = self.absTol; %#ok<*PROPLC>
             if any(abs(aArr(:))>absTol) || any(abs(bArr(:))>absTol)
                 isArrEq = abs(2*(aArr-bArr)./(aArr+bArr));
                 isArrEq = all(isArrEq(:)<=self.relTol);

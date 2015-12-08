@@ -2,7 +2,7 @@ classdef AGenEllipsoid < handle
     methods (Access = protected, Abstract, Static)
         formCompStruct(SEll, SFieldNiceNames, absTol, isPropIncluded)
     end
-    
+    %
     methods (Access = protected)
         function [isEqualArr, reportStr] = isEqualInternal(ellFirstArr,...
                 ellSecArr, isPropIncluded)
@@ -62,5 +62,7 @@ classdef AGenEllipsoid < handle
                     SEll2Array, tolerance);
             end
         end
+        %
+        polar = getScalarPolarInternal(self, isRobustMethod)
     end
 end

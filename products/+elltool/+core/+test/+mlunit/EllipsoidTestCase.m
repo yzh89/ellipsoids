@@ -11,6 +11,16 @@ classdef EllipsoidTestCase < mlunitext.test_case
                 filesep,'TestData', filesep,shortClassName];
         end
         %
+        function testQuadFunc(~)
+            ANALYTICAL_RESULT = 217;
+            MAX_TOL = 1e-10;
+            shMat=[10,5,2;5,7,4;2,4,11];
+            cVec=[1,2,3];
+            ell=ellipsoid(cVec.',shMat);
+            isOk = abs(ell.quadFunc()-ANALYTICAL_RESULT)<MAX_TOL;
+            mlunitext.assert_equals(true,isOk);
+        end
+        %
         function testRepMat(~)
             shMat=eye(2);
             ell=ellipsoid(shMat);
@@ -73,7 +83,7 @@ classdef EllipsoidTestCase < mlunitext.test_case
                         resMat=eye(nDims)+randMat*randMat.';
                     end
                     function checkCenter()
-                        isOkArr=arrayfun(@(x,y)isequal(x.getCenterVec(),...
+                        isOkArr=arrayfun(@(x,y)isequal(x.getCenterVec,...
                             y{1}),ellArr,centCArr);
                         mlunitext.assert(all(isOkArr(:)));
                     end
@@ -507,17 +517,19 @@ classdef EllipsoidTestCase < mlunitext.test_case
             testEllipsoid=ellipsoid(diag([1 4 9 16]));
             [testCenterVec, testShapeMat]=double(testEllipsoid);
             isTestDiagMat=testShapeMat==diag([1 4  9 16]);
-            isTestRes=(numel(testCenterVec)==4) && all(testCenterVec(:)==0)&& all(isTestDiagMat(:));
+            isTestRes=(numel(testCenterVec)==4) && ...
+                all(testCenterVec(:)==0)&& all(isTestDiagMat(:));
             mlunitext.assert_equals(true, isTestRes);
-            
             %Two arguments
-            fCheckForTestEllipsoidAndDouble([1; 2; -1],[2.5 -1.5 0; -1.5 2.5 0; 0 0 9]);
+            fCheckForTestEllipsoidAndDouble([1; 2; -1],...
+                [2.5 -1.5 0; -1.5 2.5 0; 0 0 9]);
             fCheckForTestEllipsoidAndDouble(-2*ones(5,1),9*eye(5,5));
             
             %High-dimensional ellipsoids
             fCheckForTestEllipsoidAndDouble(diag(1:12));
             fCheckForTestEllipsoidAndDouble((0:0.1:2).',diag(0:10:200));
-            fCheckForTestEllipsoidAndDouble(10*rand(100,1), diag(50*rand(1,100)));
+            fCheckForTestEllipsoidAndDouble(10*rand(100,1), ...
+                diag(50*rand(1,100)));
             
             %Check wrong inputs
             self.runAndCheckError('ellipsoid([1 1],eye(2,2))','wrongInput');
@@ -525,9 +537,12 @@ classdef EllipsoidTestCase < mlunitext.test_case
             self.runAndCheckError('ellipsoid([-1 0;0 -1])','wrongInput');
             self.runAndCheckError('ellipsoid([1;1],eye(3,3))','wrongInput');
             
-            self.runAndCheckError('ellipsoid([1 -i;-i 1])','wrongInput:imagArgs');
-            self.runAndCheckError('ellipsoid([1+i;1],eye(2,2))','wrongInput:imagArgs');
-            self.runAndCheckError('ellipsoid([1;0],(1+i)*eye(2,2))','wrongInput:imagArgs');
+            self.runAndCheckError('ellipsoid([1 -i;-i 1])', ...
+                'wrongInput:inpMat');
+            self.runAndCheckError('ellipsoid([1+i;1],eye(2,2))',...
+                'wrongInput:inpMat');
+            self.runAndCheckError('ellipsoid([1;0],(1+i)*eye(2,2))', ...
+                'wrongInput:inpMat');
         end
         %
         function self = testDouble(self)
@@ -1278,6 +1293,11 @@ classdef EllipsoidTestCase < mlunitext.test_case
             isOk1Arr = ellArr1.isEmpty();
             mlunitext.assert(all(isOk1Arr(:)));
             %
+            sizeArr = [2, 3, 3 + 1i * eps / 10, 5];
+            ellArr1 = ellipsoid.fromRepMat(sizeArr);
+            isOk1Arr = ellArr1.isEmpty();
+            mlunitext.assert(all(isOk1Arr(:)));
+            %
             shMat = eye(2);
             cVec = [2; 3];
             absTol = 1e-10;
@@ -1297,6 +1317,10 @@ classdef EllipsoidTestCase < mlunitext.test_case
             self.runAndCheckError(strcat('ellipsoid.fromRepMat',...
                 '([1; 1], eye(2), [2; 2; 3.5])'),...
                 'wrongInput');
+            %
+            sizeArr = [2, 3 + 1i*eps*2, 3, 5];
+            self.runAndCheckError('ellipsoid.fromRepMat (sizeArr)', ...
+                'wrongInput:inpMat');
         end
         %
         function self = testMultiDimensionalConstructor(self)
@@ -1478,15 +1502,16 @@ distEll = sqrt(fDist);
 end
 %
 function distEllEll=ellEllDistanceCVX(ellObj1,ellObj2,flag)
+import gras.geom.ell.invmat;
 dims1Mat = dimension(ellObj1);
 %dims2Mat = dimension(ellObj2);
 maxDim   = max(max(dims1Mat));
 %maxDim2   = max(max(dims2Mat));
 [cen1Vec, q1Mat] = double(ellObj1);
 [cen2Vec, q2Mat] = double(ellObj2);
-qi1Mat     = ell_inv(q1Mat);
+qi1Mat     = invmat(q1Mat);
 qi1Mat     = 0.5*(qi1Mat + qi1Mat');
-qi2Mat     = ell_inv(q2Mat);
+qi2Mat     = invmat(q2Mat);
 qi2Mat     = 0.5*(qi2Mat + qi2Mat');
 cvx_begin sdp
 variable x(maxDim, 1)

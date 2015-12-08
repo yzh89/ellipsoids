@@ -59,11 +59,12 @@ function plObj = plot(varargin)
 % $Copyright: Moscow State University,
 %            Faculty of Computational Mathematics and Cybernetics,
 %            System Analysis Department 2012 $
-
+%
 import elltool.plot.plotgeombodyarr;
 [plObj,nDim,isHold]= plotgeombodyarr(@(x)isa(x,'ellipsoid'),...
     @(x)dimension(x),@fCalcBodyTriArr,...
     @patch,varargin{:});
+%
 if (nDim < 3)
     [reg]=...
         modgen.common.parseparext(varargin,...
@@ -76,14 +77,13 @@ if (nDim < 3)
         reg{:},...
         'relDataPlotter',plObj, 'priorHold',true,'postHold',isHold);
 end
-
-
+    %
     function [xMatCArr, fMatCArr] = fCalcBodyTriArr(bodyArr,varargin)
         [xMatCArr, fMatCArr] = arrayfun(@(x)getRhoBoundary(x), bodyArr,...
             'UniformOutput', false);
         xMatCArr = cellfun(@(x) x.', xMatCArr, 'UniformOutput', false);
     end
-
+    %
     function [xCMat,fCMat] = fCalcCenterTriArr(bodyArr,varargin)
         [xCMat,fCMat] = arrayfun(@(x)fCalcCenterTri(x),bodyArr,...
             'UniformOutput',false);
@@ -91,12 +91,11 @@ end
             if nDim == 1
                 [plotEll,nDim] = rebuildOneDim2TwoDim(plotEll);
             end
-            vCenterMat = plotEll.centerVec();
+            vCenterMat = plotEll.centerVec;
             fCenterMat = [1 1];
         end
     end
-
-
+    %
     function [ellsArr,nDim] = rebuildOneDim2TwoDim(ellsArr)
         ellsCMat = arrayfun(@(x) oneDim2TwoDim(x), ellsArr, ...
             'UniformOutput', false);
@@ -108,12 +107,4 @@ end
                 diag([qMat, 0]));
         end
     end
-
 end
-
-
-
-
-
-
-

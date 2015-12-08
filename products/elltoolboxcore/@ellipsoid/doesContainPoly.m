@@ -32,6 +32,7 @@ function doesContain = doesContainPoly(ellArr,poly,varargin)
 %   isPosArr: logical[nDims1,nDims2,...,nDimsN],
 %       resArr(iCount) = true - firstEllArr(iCount)
 %       contains secondObjArr(iCount), false - otherwise.
+%
 varargin = varargin{:};
 [~,~,compMode,isCompModeSpec] = modgen.common.parseparext(varargin,'computeMode');
 if ~isCompModeSpec || ~(ischar(compMode))||...
@@ -45,7 +46,7 @@ if ~isCompModeSpec || ~(ischar(compMode))||...
 else
     computeMode = compMode;
 end
-
+%
 isAnyEllDeg = any(isdegenerate(ellArr(:)));
 isPolyDeg = ~any(poly.isFullDim());
 isBnd = any(poly.isBounded());
@@ -104,11 +105,11 @@ for iDims = 1:2*nDims
         maximize( basisVec*x)
         subject to    
             for iConstraints = 1:nConstraints
-                constrMat(iConstraints,:)*x <= constrConstVec(iConstraints);
+                constrMat(iConstraints,:)*x <= constrConstVec(iConstraints); %#ok<VUNUS>
             end
             for iEll = 1:nEll
                 (x-cVecCArr{iEll})' * shMatCArr{nEll} * (x-cVecCArr{iEll})...
-                    <= 1;
+                    <= 1; %#ok<VUNUS>
             end
     cvx_end
     maxVecsMat(iDims,:) = x';
@@ -133,7 +134,7 @@ end
 %
 function [normMat,constVec] = findNormAndConst(pointsMat)
 normIndexes = convhulln(pointsMat);
-[nFacets nDims] = size(normIndexes);
+[nFacets, nDims] = size(normIndexes);
 normMat = zeros(nFacets,nDims);
 constVec = zeros(nFacets,1);
 inFacetVecsMat = zeros(nDims,nDims);
@@ -152,20 +153,8 @@ for iFacets = 1:nFacets
 end
 end
 %
-function res = isEllPolInPolyPol(ell,normalsMat, constVec,internalPoint,absTol)
-polarEll = getPolar(ell-internalPoint);
+function res = isEllPolInPolyPol(ell,normalsMat,constVec,internalPoint,absTol)
+polarEll = getScalarPolarInternal(ell-internalPoint);
 suppFuncVec = rho(polarEll,normalsMat');
 res = all(suppFuncVec' <= constVec+absTol);
 end
-function polar = getPolar(ell)
-[cVec shMat] = double(ell);
-invShMat = inv(shMat);
-normConst = cVec'*(shMat\cVec);
-polarCVec = -(shMat\cVec)/(1-normConst);
-polarShMat = invShMat/(1-normConst) + polarCVec*polarCVec';
-polar = ellipsoid(polarCVec,polarShMat);
-end
-
-
-    
-                

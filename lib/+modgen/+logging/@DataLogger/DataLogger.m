@@ -104,7 +104,7 @@ classdef DataLogger<modgen.common.obj.StaticPropStorage
             end
             %% preprocess data storage
             if ~modgen.system.ExistanceChecker.isDir(storageLocation),
-                mkdir(storageLocation);
+                modgen.io.mkdir(storageLocation);
             end
             if isfinite(nMaxDatesOnDisk)&&isEnabled,
                 % delete files that are more than nMaxDatesOnDisk dates on
@@ -285,7 +285,7 @@ classdef DataLogger<modgen.common.obj.StaticPropStorage
             getMethodName=[className '.getPropInternal'];
             fileName=[feval(getMethodName,'storageLocation') filesep ...
                 shortFuncName '_' feval(getMethodName,'filePostfix') '_'...
-                datestr(now,30) '_' hash(fullFuncName) '.mat'];
+                datestr(now,30) '_' modgen.common.hash(fullFuncName) '.mat'];
         end
         %
         function [shortFuncName,fullFuncName,isLogged]=getFunctionProps(indStack)
@@ -314,7 +314,7 @@ classdef DataLogger<modgen.common.obj.StaticPropStorage
             %         to be logged, otherwise false
             %
             %
-            
+            import modgen.cell.cell2sepstr;
             curClassName=mfilename('class');
             %% find function names (short and full one, but without
             %% prefixes)

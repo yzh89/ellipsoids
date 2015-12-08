@@ -1,5 +1,4 @@
 function polEllArr = polar(ellArr)
-%
 % POLAR - computes the polar ellipsoids.
 %
 %   polEllArr = POLAR(ellArr)  Computes the polar ellipsoids for those
@@ -40,34 +39,14 @@ function polEllArr = polar(ellArr)
 %            Faculty of Computational Mathematics and Computer Science,
 %            System Analysis Department 2012 $
 %
-
 import modgen.common.throwerror
-
 ellipsoid.checkIsMe(ellArr);
 modgen.common.checkvar(ellArr,'~any(isdegenerate(x))',...
     'errorTag','degenerateEllipsoid',...
     'errorMessage','The resulting ellipsoid is not bounded');
-
 sizeCVec = num2cell(size(ellArr));
 polEllArr(sizeCVec{:}) = ellipsoid;
-arrayfun(@(x) fSinglePolar(x), 1:numel(ellArr));
 
-    function fSinglePolar(index)
-        singEll = ellArr(index);
-        qVec = singEll.centerVec;
-        shMat = singEll.shapeMat;
-        chk    = qVec' * ell_inv(shMat) * qVec;
-        %chk checks if zero belongs to singEll ellipsoid
-        if chk < 1
-            auxMat  = ell_inv(shMat - qVec*qVec');
-            auxMat  = 0.5*(auxMat + auxMat');
-            polCenVec  = -auxMat * qVec;
-            polShapeMat  = (1 + qVec'*auxMat*qVec)*auxMat;
-            polEllArr(index).centerVec = polCenVec;
-            polEllArr(index).shapeMat = polShapeMat;
-        else
-            throwerror('degenerateEllipsoid',...
-                'The resulting ellipsoid is not bounded');
-        end
-    end
+for iElem = 1:numel(ellArr)
+    polEllArr(iElem) = getScalarPolarInternal(ellArr(iElem));
 end

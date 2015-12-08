@@ -8,13 +8,17 @@ classdef MPTController < elltool.exttbx.IExtTBXController
         function fullSetup(self,absTol,relTol,isVerbose)   
             self.checkIfOnPath();
             if isempty(whos('global',self.MPT_GLOBAL_OPT))
+                global MPTOPTIONS;                 %#ok<TLEV>
                 if isVerbose
                     verbose = 2;
                 else
                     verbose = 1;
                 end
+                warning('off','optim:quadprog:WillBeRemoved');
                 mpt_init();
-                mptopt('abs_tol',absTol,'rel_tol',relTol,'verbose',verbose);
+                MPTOPTIONS.rel_tol=relTol;
+                MPTOPTIONS.abs_tol=absTol;
+                MPTOPTIONS.verbose=verbose;
                 self.checkIfSetUp();
             end
         end
@@ -30,7 +34,7 @@ classdef MPTController < elltool.exttbx.IExtTBXController
         %
         function isPositive=isOnPath(self)
             isPositive=modgen.system.ExistanceChecker.isFile(...
-                self.MPT_SETUP_FUNC_NAME);
+                which(self.MPT_SETUP_FUNC_NAME));
         end
         %
         function checkIfSetUp(self)
@@ -46,7 +50,7 @@ classdef MPTController < elltool.exttbx.IExtTBXController
                 horLineStr=['\n',repmat('-',1,N_HOR_LINE_CHARS),'\n'];
                 msgStr=sprintf(['\n',horLineStr,...
                     '\nMPT is not found!!! \n',...
-                    'Please put MPT into "mpt" ',...
+                    'Please put MPT into "externals\mpt" ',...
                     'folder next to "products" folder ',horLineStr]);
                 modgen.common.throwerror('mptNotFound',msgStr);
             end

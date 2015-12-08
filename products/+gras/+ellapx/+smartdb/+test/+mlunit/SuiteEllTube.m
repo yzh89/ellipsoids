@@ -53,7 +53,9 @@ classdef SuiteEllTube < mlunitext.test_case
             approxType = gras.ellapx.enums.EApproxType(1);
             ABS_TOL = 10^(-3);
             REL_TOL = 10^(-3);
-            rel = gras.ellapx.smartdb.rels.EllUnionTube.fromEllTubes(gras.ellapx.smartdb.rels.EllTube.fromQArrays(QArrList',aMat...
+            rel = gras.ellapx.smartdb.rels.EllUnionTube.fromEllTubes(...
+                gras.ellapx.smartdb.rels.EllTube.fromQArrays(QArrList',...
+                aMat...
                 ,timeVec,ltGDir,sTime',approxType,...
                 char.empty(1,0),char.empty(1,0),...
                 ABS_TOL, REL_TOL));
@@ -116,7 +118,8 @@ classdef SuiteEllTube < mlunitext.test_case
                 expRel=outList{outNum};
                 %
                 fieldToExcludeList = rel.getNoCatOrCutFieldsList();                
-                fieldList = setdiff(cutRel.getFieldNameList(),fieldToExcludeList);
+                fieldList = setdiff(cutRel.getFieldNameList(),...
+                    fieldToExcludeList);
                 %
                 [isOk,reportStr] = ...
                     cutRel.getFieldProjection(fieldList).isEqual(...
@@ -178,7 +181,8 @@ classdef SuiteEllTube < mlunitext.test_case
                 setdiff(fieldToExcludeList,{'sTime','indSTime'})));
             mlunitext.assert(isOk);
             function check()
-                fieldList = setdiff(catRel.getFieldNameList(),fieldToExcludeList);
+                fieldList = setdiff(catRel.getFieldNameList(),...
+                    fieldToExcludeList);
                 [isOk,reportStr] = ...
                     catRel.getFieldProjection(fieldList).isEqual(...
                     expRel.getFieldProjection(fieldList));
@@ -389,9 +393,7 @@ classdef SuiteEllTube < mlunitext.test_case
             projMatList={[1 0 1;0 1 1],[1 0 0;0 1 0]};
             projObj=EllTubeStaticSpaceProjector(projMatList);
             relProj=projObj.project(rel);
-            
-            
-            
+            %
             relProj.plot();
             %
             MBeforeArray=rel.MArray;
@@ -1068,10 +1070,16 @@ classdef SuiteEllTube < mlunitext.test_case
                 approxSchemaDescr, ABS_TOL, REL_TOL);
             % nonscalar input
             myEllTubeArr = [nonMixedEllTube,nonMixedEllTube];
-            self.runAndCheckError(...
-                'myEllTubeArr.isEqual(nonMixedEllTube)','noScalarObj');
-            self.runAndCheckError(...
-                'nonMixedEllTube.isEqual(myEllTubeArr)','noScalarObj');
+            %
+            isOkVec=myEllTubeArr.isEqualElem(nonMixedEllTube);
+            mlunitext.assert(all(isOkVec));
+            isOk=myEllTubeArr.isEqual(nonMixedEllTube);
+            mlunitext.assert(~isOk);
+            %
+            isOkVec=nonMixedEllTube.isEqualElem(myEllTubeArr);
+            mlunitext.assert(all(isOkVec));
+            isOk=nonMixedEllTube.isEqual(myEllTubeArr);
+            mlunitext.assert(~isOk);
             % self equal
             fCheckIsEqual(mixedExtIntEllTube, mixedExtIntEllTube);
             fCheckIsEqual(nonMixedEllTube, nonMixedEllTube);
@@ -1134,7 +1142,8 @@ classdef SuiteEllTube < mlunitext.test_case
                 projSpaceList, @fGetProjMat);
             self.runAndCheckError(...
                 ['projEllTube.isEqual('...
-                'mixedExtIntEllTube)'],'wrongInput');
+                'mixedExtIntEllTube)'],'wrongInput');            
+            %
             proj2EllTube = interpMixedEllTube.project(projType,...
                 projSpaceList, @fGetProjMat);
             fCheckIsEqual(projEllTube, proj2EllTube);
@@ -1177,6 +1186,18 @@ classdef SuiteEllTube < mlunitext.test_case
             end
         end
         %
+        function testSortUniqueTouch(self)
+            nTubes=3;
+            nPoints=10;
+            [rel,relStatProj]=auxGenSimpleTubeAndProj(self,...
+                nPoints,nTubes);
+            check([rel,rel.getCopy()]);
+            check([relStatProj,relStatProj.getCopy()]);
+            function check(relVec)
+                [~,~,~]=unique(relVec);
+                [~,~]=sort(relVec);
+            end
+        end
         function testUnionFromEllTubesAdvanced(self)
             nTubes=3;
             nPoints=10;

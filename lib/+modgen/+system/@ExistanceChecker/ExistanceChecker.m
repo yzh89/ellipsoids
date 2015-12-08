@@ -18,6 +18,7 @@ classdef ExistanceChecker
     end
     methods (Static)
         function res=exist(varargin)
+            import modgen.cell.cell2sepstr;
             inpArg=['exist(''',cell2sepstr([],varargin,''','''),''')'];
             res=evalin('caller',inpArg);
         end
@@ -28,18 +29,33 @@ classdef ExistanceChecker
                 ExistanceChecker.classLoc,'.VAR_IS_IN_WORKSPACE'];
             isPositive=evalin('caller',inpArg);
         end
-        function isPositive=isDir(nameStr)
+        function isPositive=isDir(nameStr,isJavaBased)
             import modgen.system.ExistanceChecker;            
-            inpArg=[ExistanceChecker.classLoc,'.exist(''',nameStr,''',''dir'')==',...
-                ExistanceChecker.classLoc,'.DIRECTORY_ON_DISK'];
-            isPositive=evalin('caller',inpArg);
+            if nargin<2
+                isJavaBased=true;
+            end
+            if isJavaBased
+                isPositive=modgen.io.isdir(nameStr);
+            else
+                inpArg=[ExistanceChecker.classLoc,...
+                    '.exist(''',nameStr,''',''dir'')==',...
+                    ExistanceChecker.classLoc,'.DIRECTORY_ON_DISK'];
+                isPositive=evalin('caller',inpArg);
+            end
         end
-        function isPositive=isFile(nameStr)
+        function isPositive=isFile(nameStr,isJavaBased)
             import modgen.system.ExistanceChecker;            
-            inpArg=[ExistanceChecker.classLoc,'.exist(''',nameStr,''',''file'')==',...
-                ExistanceChecker.classLoc,'.FILE_IS_ON_DISK'];
-            isPositive=evalin('caller',inpArg);
+            if nargin<2
+                isJavaBased=true;
+            end
+            if isJavaBased
+                isPositive=modgen.io.isfile(nameStr);
+            else
+                inpArg=[ExistanceChecker.classLoc,...
+                    '.exist(''',nameStr,''',''file'')==',...
+                    ExistanceChecker.classLoc,'.FILE_IS_ON_DISK'];
+                isPositive=evalin('caller',inpArg);                
+            end
         end
     end
-    
 end

@@ -70,7 +70,7 @@ classdef EmailLogger<handle
             end
             %% Configure email notification
             if ~self.isDryRun
-                [curUserName,curHostName]=getuserhost();
+                [curUserName,curHostName]=modgen.system.getuserhost();
                 if ~isempty(curUserName)
                     self.userName = curUserName;
                 end
@@ -88,6 +88,7 @@ classdef EmailLogger<handle
         function sendMessage(self,subjectMessage,varargin)
             import modgen.common.throwerror;
             import modgen.common.parseparext;
+            import modgen.cell.cell2sepstr;
             %% Create log4j logger
             logger=modgen.logging.log4j.Log4jConfigurator.getLogger();
             %
@@ -99,7 +100,8 @@ classdef EmailLogger<handle
                 %
                 emailSubjectPrefix=['[',self.loggerName,']:'];
                 emailSubjectSuffix=[self.subjectSuffix ,...
-                    ', running on ',self.hostName,'(',self.userName,')'];
+                    ', running on host:',self.hostName,'(user:',self.userName,'),',...
+                    'matlab:',version('-release'),'(arch:',computer,')'];
                 emailSubject=[emailSubjectPrefix,subjectMessage,...
                     emailSubjectSuffix];
                 emailAttachNameList=self.emailAttachmentNameList;

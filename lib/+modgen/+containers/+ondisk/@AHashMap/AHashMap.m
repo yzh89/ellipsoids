@@ -1,4 +1,4 @@
-classdef AHashMap<handle
+classdef AHashMap<modgen.containers.ondisk.IOnDiskBranchedStorage
     %DISKBASEDHASHMAP represents a hash map for the arbitrary objects on disk
     % with a high level of persistency when the object state can be
     % restored based only on a storage location
@@ -8,8 +8,9 @@ classdef AHashMap<handle
         ALLOWED_EXTENSIONS
         
     end
-    properties (Access=protected, Hidden)
+    properties (Access=protected,Hidden)
         storageLocation
+        storageLocationRoot
         isPutErrorIgnored=false
         isBrokenStoredValuesIgnored=false
         fileExtension
@@ -21,6 +22,7 @@ classdef AHashMap<handle
         storageFormat='none'
         isMissingKeyBlamed=false
         isStorageContentChecked=true;
+        storageBranchKey
     end
     methods
         function isHashedPath=getIsHashedPath(self)
@@ -39,64 +41,62 @@ classdef AHashMap<handle
             %            System Analysis Department 2012 $
             %
             %
-            import modgen.*;
+            import modgen.common.parseparext;
             import modgen.containers.DiskBasedHashMap;
             import modgen.system.ExistanceChecker;
             %
-            [~,prop]=parseparams(varargin);
-            nProp=length(prop);
-            isStorageBranchKeySkipped=false;
-            for k=1:2:nProp-1
-                switch lower(prop{k})
-                    case 'skipstoragebranchkey',
-                        isStorageBranchKeySkipped=prop{k+1};
-                    case 'storagelocationroot'
-                        storageLocation=prop{k+1};
-                    case 'storagebranchkey',
-                        storageBranchKey=prop{k+1};
-                    case 'ignoreputerrors',
-                        self.isPutErrorIgnored=true;
-                    case 'ignorebrokenstoredvalues',
-                        self.isBrokenStoredValuesIgnored=true;
-                    case 'storageformat'
-                        self.storageFormat=prop{k+1};
-                    case 'usehashedpath',
-                        self.isHashedPath=prop{k+1};
-                    case 'usehashedkeys',
-                        self.isHashedKeys=prop{k+1};
-                    case 'checkstoragecontent',
-                        self.isStorageContentChecked=prop{k+1};
-                    otherwise,
-                        error([upper(mfilename),':wrongProperty'],...
-                            'unidentified property name: %s ',prop{k});
-                end;
-            end;
+            [~,~,isStorageBranchKeySkipped,storageLocationRoot,...
+                storageBranchKey,self.isPutErrorIgnored,...
+                self.isBrokenStoredValuesIgnored,self.storageFormat,...
+                self.isHashedPath,self.isHashedKeys,...
+                self.isStorageContentChecked,...
+                ~,isStorageLocSpec,isStorageBranchKeySpec]=...
+                modgen.common.parseparext(varargin,...
+                {'skipStorageBranchKey','storageLocationRoot',...
+                'storagebranchkey','ignoreputerrors',...
+                'ignorebrokenstoredvalues','storageformat',...
+                'usehashedpath','usehashedkeys',...
+                'checkstoragecontent';...
+                false,char(1,0),'default',self.isPutErrorIgnored,...
+                self.isBrokenStoredValuesIgnored,self.storageFormat,...
+                self.isHashedPath,self.isHashedKeys,...
+                self.isStorageContentChecked;...
+                'islogscalar(x)','ischarstring(x)',...
+                'ischarstring(x)','islogscalar(x)',...
+                'islogscalar(x)','ischarstring(x)',...
+                'islogscalar(x)','islogscalar(x)',...
+                'islogscalar(x)'},[0 1]);
             %
-            if ~ExistanceChecker.isVar('storageBranchKey')
+            if ~isStorageBranchKeySpec
                 storageBranchKey='default';
             end
             %
             if self.isHashedPath
-                storageBranchKey=hash(storageBranchKey);
+                storageBranchKey=modgen.common.hash(storageBranchKey);
             end
             %
-            if ~ExistanceChecker.isVar('storageLocation')
+            if ~isStorageLocSpec
                 metaClass=metaclass(self);
-                storageLocation=fileparts(which(metaClass.Name));
+                storageLocationRoot=fileparts(which(metaClass.Name));
             end
             %
             %
             if isStorageBranchKeySkipped
-                self.storageLocation=storageLocation;
+                self.storageLocation=storageLocationRoot;
+                storageBranchKey='';
             else
-                self.storageLocation=[storageLocation,filesep,...
+                self.storageLocation=[storageLocationRoot,filesep,...
                     storageBranchKey];
             end
+            %
+            self.storageLocationRoot=storageLocationRoot;
+            %
+            self.storageBranchKey=storageBranchKey;
             %
             if ~strcmpi(self.storageFormat,'none')
                 if ~ExistanceChecker.isDir(self.storageLocation)
                     %check that a directory if exists, containts only mat files
-                    mkdir(self.storageLocation);
+                    modgen.io.mkdir(self.storageLocation);
                 else
                     self.checkStorageDir(self.storageLocation);
                 end
@@ -154,10 +154,12 @@ classdef AHashMap<handle
             %
             %
             import modgen.system.ExistanceChecker;
+            import modgen.common.throwwarn;
             if isa(keyList,'char')
                 keyList={keyList};
             end
-            fullFileNameCVec=cellfun(@self.genfullfilename,keyList,'UniformOutput',false);
+            fullFileNameCVec=cellfun(@self.genfullfilename,keyList,...
+                'UniformOutput',false);
             isKeyVec=false(1,length(fullFileNameCVec));
             nKeys=length(isKeyVec);
             for iKey=1:nKeys
@@ -165,7 +167,7 @@ classdef AHashMap<handle
                     isKeyVec(iKey)=self.checkKey(fullFileNameCVec{iKey});
                 catch meObj
                     if self.isBrokenStoredValuesIgnored
-                        warning([upper(mfilename),':brokenKeyValue'],...
+                        throwarn('brokenKeyValue',...
                             'a value stored for a specified is broken: %s',...
                             meObj.message);
                     else
@@ -174,6 +176,35 @@ classdef AHashMap<handle
                 end
             end
             
+        end
+        %
+        function branchKey=getStorageBranchKey(self)
+            % GETSTORAGEBRANCHKEY
+            % Input:
+            %   regular:
+            %       self:
+            % Output:
+            %   branchKey: char[1,] - current branch key
+            %
+            branchKey=self.storageBranchKey;
+        end
+        %
+        function storageLocationRoot=getStorageLocationRoot(self)
+            % GETSTORAGELOCATION returns a storage location root
+            %  for the object in question
+            %
+            % Usage: self.getStorageLocation()
+            %
+            % Input:
+            %   regular:
+            %       self: DiskBasedHashMap[1,1] - the object itself
+            % Output:
+            %   regular:
+            %       storageLocationRoot: char[1,nChars] - storage location
+            %           directory on a disk (includes a branch key)
+            %
+            
+            storageLocationRoot=self.storageLocationRoot;
         end
         %
         function storageLocation=getStorageLocation(self)
@@ -187,8 +218,8 @@ classdef AHashMap<handle
             %       self: DiskBasedHashMap[1,1] - the object itself
             % Output:
             %   regular:
-            %       storageLocation: char[1,nChars] - storage location on
-            %       the disk
+            %       storageLocation: char[1,nChars] - storage location
+            %           directory on a disk (includes a branch key)
             %
             
             storageLocation=self.storageLocation;
@@ -207,9 +238,9 @@ classdef AHashMap<handle
             %          any type
             %
             % Output:
-            %   
             %
-            
+            %
+            import modgen.common.throwerror;
             if ~iscell(valueObjList)
                 valueObjList={valueObjList};
             end
@@ -221,8 +252,8 @@ classdef AHashMap<handle
             varargin(isnCellVec)=cellfun(@(x){x},varargin(isnCellVec),...
                 'UniformOutput',false);
             %
-            if ~auxchecksize(keyList,size(valueObjList))
-                error([upper(mfilename),':wrongInput'],...
+            if ~modgen.common.checksize(keyList,size(valueObjList))
+                throwerror('wrongInput',...
                     'keyList and valueObjList should be of the same size');
             end
             %
@@ -298,10 +329,12 @@ classdef AHashMap<handle
             %       values
             %
             %
-            SFileProp=dir([self.storageLocation,filesep,['*.',self.fileExtension]]);
+            SFileProp=dir([self.storageLocation,filesep,...
+                ['*.',self.fileExtension]]);
             isDirVec=[SFileProp.isdir];
             fileNameList={SFileProp(~isDirVec).name};
-            fileNameList=cellfun(@(x)([self.storageLocation,filesep,x]),fileNameList,'UniformOutput',false);
+            fileNameList=cellfun(@(x)([self.storageLocation,filesep,x]),...
+                fileNameList,'UniformOutput',false);
             nFiles=length(fileNameList);
             keyList={};
             for iFile=1:nFiles
@@ -346,6 +379,8 @@ classdef AHashMap<handle
     methods (Access=protected)
         function [isPositive,keyStr]=checkKey(self,fileName)
             import modgen.system.ExistanceChecker;
+            import modgen.common.throwerror;
+            import modgen.common.throwwarn;
             isPositive=ExistanceChecker.isFile(fileName);
             if isPositive
                 warnState=warning('off','MATLAB:load:variableNotFound');
@@ -362,16 +397,16 @@ classdef AHashMap<handle
                     keyStr=S.keyStr;
                 else
                     keyStr='';
-                    warning([upper(mfilename),':incorrectKeyValueFile'],...
+                    throwarn('incorrectKeyValueFile',...
                         'key value file is invalid and will be updated');
                 end
                 supposedFileName=self.genfilename(keyStr);
                 [~,actualFileName]=fileparts(fileName);
                 if ~strcmp(supposedFileName,actualFileName)
-                    error([upper(mfilename),':badKeyValuePair'],...
+                    throwerror('badKeyValuePair',...
                         ['key %s assumes the key value file name to be %s ',...
                         'while the actual file name is %s'],...
-                        keyStr,supposedFileName,actualFileName);
+                        keyStr,supposedFileName,fileName);
                 end
             end
         end
@@ -383,9 +418,9 @@ classdef AHashMap<handle
             end
         end
         function fullFileName=genfullfilename(self,keyStr)
-            import modgen.*;
+            import modgen.common.throwerror;
             if ~modgen.common.isrow(keyStr)
-                error([upper(mfilename),':wrongInput'],...
+                throwerror('wrongInput',...
                     'keyStr is expected to be a row-string');
             end
             fullFileName=[self.storageLocation,filesep,...
@@ -393,6 +428,7 @@ classdef AHashMap<handle
         end
         function putOne(self,keyStr,valueObj)
             import modgen.system.ExistanceChecker;
+            import modgen.common.throwwarn;
             fullFileName=self.genfullfilename(keyStr);
             try
                 self.saveFunc(fullFileName,'valueObj','keyStr');
@@ -402,7 +438,7 @@ classdef AHashMap<handle
                 end
                 %
                 if self.isPutErrorIgnored
-                    warning([upper(mfilename),':saveFailure'],...
+                    throwwarn('saveFailure',...
                         'cannot save the key value: %s',...
                         meObj.message);
                     return;
@@ -432,8 +468,9 @@ classdef AHashMap<handle
         end
         function checkStorageDir(self,dirName)
             import modgen.containers.DiskBasedHashMap;
+            import modgen.common.throwerror;
             if ~self.isStorageDir(dirName)
-                error([mfilename,':wrongLocation'],...
+                throwerror('wrongLocation',...
                     ['cannot create a storage at the specified location %s ',...
                     'as it contains some foreign files'],dirName);
             end
@@ -451,9 +488,9 @@ classdef AHashMap<handle
         function fileName=genfilename(self,inpStr)
             %
             if self.isHashedKeys
-                inpStr=hash(inpStr);
+                inpStr=modgen.common.hash(inpStr);
             end
-            
+            %
             if ~isempty(inpStr)
                 nChars=length(inpStr);
                 nBlocks=fix(nChars/namelengthmax);
