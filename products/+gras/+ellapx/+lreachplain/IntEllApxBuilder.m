@@ -48,7 +48,7 @@ classdef IntEllApxBuilder<gras.ellapx.lreachplain.ATightIntEllApxBuilder
             self=self@gras.ellapx.lreachplain.ATightIntEllApxBuilder(...
                 varargin{:});
             bigX0SqrtMat=gras.la.sqrtmpos(self.getProblemDef().getX0Mat);
-            self.S0X0SqrtMat=bigX0SqrtMat;
+            self.bigS0X0SqrtMat=bigX0SqrtMat;
             pDefObj=self.getProblemDef();
             sysDim=pDefObj.getDimensionality();
             pTimeLimsVec=pDefObj.getTimeLimsVec();
