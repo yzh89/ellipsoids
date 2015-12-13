@@ -154,12 +154,38 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
                 %
                 isLsTouch=lsGoodDirNorm>absTol;
                 %
-                %
-                if isLsTouch
+                if ~isLsTouch
+                    if lsGoodDirNorm>0
+                        throwerror('wrongState',...
+                            ['norm of l(%g)=%s',...
+                            'has degraded below absolute ',...
+                            'tolerance=%g\n',...
+                            '  norm(l(%g))=%g'],...
+                            sTime,mat2str(lsGoodDirVec),absTol,sTime,...
+                            lsGoodDirNorm);
+                    end
+                else
                     lsGoodDirVec=lsGoodDirVec./lsGoodDirNorm;
                 end
                 %
                 isLtTouchVec=ltGoodDirNormVec>absTol;
+                if ~all(isLtTouchVec)
+                    isLtDegradedVec=~isLtTouchVec&(ltGoodDirNormVec>0);
+                    if any(isLtDegradedVec)
+                        indFirstDegraded=find(isLtDegradedVec,1,'first');
+                        tDegr=timeVec(indFirstDegraded);
+                        ltGoodDirVec=ltGoodDirMat(:,indFirstDegraded);
+                        ltNorm=ltGoodDirNormVec(indFirstDegraded);
+                        throwerror('wrongState',...
+                            ['norm of l(t) at t=%g has degraded ',...
+                            'below absolute tolerance=%g\n',...
+                            '  l(%g)=%s,\n',...
+                            '  l(%g)=%s,\n',...
+                            '  norm(l(%g))=%g'],...
+                            tDegr,absTol,sTime,mat2str(lsGoodDirVec),...
+                            tDegr,mat2str(ltGoodDirVec),tDegr,ltNorm);
+                    end
+                end
                 %
                 if any(isLtTouchVec)
                     ltGoodDirMat(:,isLtTouchVec)=ltGoodDirMat(:,isLtTouchVec)./...
@@ -264,7 +290,7 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
             STubeData.absTol=repmat(absTol,nLDirs,1);
             %
             STubeData.relTol=repmat(relTol,nLDirs,1);
-            % 
+            %
             for iLDir=1:1:nLDirs
                 STubeData.ltGoodDirMat{iLDir}=...
                     squeeze(ltGoodDirArray(:,iLDir,:));
@@ -279,7 +305,7 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
             dependencyFieldList={'sTime','lsGoodDirVec','MArray'};
         end
         function checkTouchCurveVsQNormArray(self,tubeRel,curveRel,...
-                fDistFunc,checkName,fFilterFunc)
+                fDistFunc,checkName,fFilterFunc) %#ok<INUSL>
             nTubes=tubeRel.getNTuples();
             nCurves=curveRel.getNTuples();
             QArrayList=tubeRel.QArray;
@@ -323,7 +349,7 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
                 actualPrecision = min([actualSvdPrecision, ...
                     actualRegPrecision]);
                 %
-                isOk = (actualPrecision <= calcPrecision);
+                isOk=actualPrecision<=calcPrecision;
                 if ~isOk
                     throwerror('wrongInput:touchLineValueFunc',...
                         ['check [%s] has failed for %s, ',...
@@ -331,6 +357,7 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
                         checkName, fieldName, calcPrecision, ...
                         actualPrecision);
                 end
+                %
                 function normVal = checkPrecision(lrDivByVecOp)
                     normVec = lrDivByVecOp(QArray, xTouchCurveMat - aMat);
                     isnNanVec=~isnan(normVec);
@@ -350,12 +377,12 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
             QIntArrayList=intRel.applyTupleGetFunc(@(x,y)x./(y.*y),...
                 {'QArray','scaleFactor'},'UniformOutput',false);
             intCalcPrecVec=intRel.absTol;
-
+            
             %
             QExtArrayList=extRel.applyTupleGetFunc(@(x,y)x./(y.*y),...
                 {'QArray','scaleFactor'},'UniformOutput',false);
             extCalcPrecVec=extRel.absTol;
-
+            
             %
             nIntGroups=length(indIntForwardVec);
             nExtGroups=length(indExtForwardVec);
@@ -802,7 +829,7 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
         end
     end
     methods
-        function [apprEllMat timeVec] = getEllArray(self, approxType)
+        function [apprEllMat,timeVec] = getEllArray(self, approxType)
             % GETELLARRAY - returns array of matrix's ellipsoid according to
             %               approxType
             %
@@ -1070,7 +1097,7 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
             self.checkIfObjectScalar();
             ellTubeObj.checkIfObjectScalar();
             notExistFieldList=setdiff(self.getFieldNameList(),...
-                    ellTubeObj.getFieldNameList());
+                ellTubeObj.getFieldNameList());
             %
             if ~isempty(notExistFieldList)
                 throwerror('wrongInput:notConsistentTubes',...
@@ -1091,7 +1118,7 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
                 notComparedFieldList,areTimeBoundsCompared,...
                 isTupleOrderChecked,isMaxCompareTolSpec,...
                 isMaxRelCompareTolSpec]=modgen.common.parseparext(...
-                varargin,propCheckMat);            
+                varargin,propCheckMat);
             %
             if ~isMaxCompareTolSpec
                 maxCompareTol=max(self.absTol)+...
@@ -1255,7 +1282,6 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
                     end
                 end
             end
-            %
         end
     end
 end
