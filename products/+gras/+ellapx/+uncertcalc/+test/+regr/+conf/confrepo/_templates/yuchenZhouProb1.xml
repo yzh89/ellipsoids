@@ -2,18 +2,36 @@
 <root version="21" xml_tb_version="2.0" type="struct" >
 <valueObj type="struct" >
 	<genericProps type="struct" >
-		<calcTimeLimVec type="double" >0 4</calcTimeLimVec>
-		<isSplineForMatrixCalcUsed type="boolean" >0</isSplineForMatrixCalcUsed>
-		<absTol type="double" >1e-06</absTol>
-		<relTol type="double" >0.0001</relTol>
+		<calcTimeLimVec type="double" >0 6</calcTimeLimVec>
+		<isSplineForMatrixCalcUsed type="boolean" >1</isSplineForMatrixCalcUsed>
+		<absTol type="double" >1e-05</absTol>
+		<relTol type="double" >0.001</relTol>
 	</genericProps>
 	<projectionProps type="struct" >
 		<projSpaceSetName type="char" >set1</projSpaceSetName>
 		<projSpaceSets type="struct" >
 			<set1 type="cell" >
+				<item type="boolean" >1 1 0 0 0 0 0 0</item>
 				<item type="boolean" >1 0 1 0 0 0 0 0</item>
+				<item type="boolean" >1 0 0 1 0 0 0 0</item>
+				<item type="boolean" >0 1 1 0 0 0 0 0</item>
+				<item type="boolean" >0 1 0 1 0 0 0 0</item>
 				<item type="boolean" >0 0 1 1 0 0 0 0</item>
 			</set1>
+			<set2 type="cell" >
+				<item type="boolean" >0 0 1 1 0 0 0 0</item>
+			</set2>
+			<set3 type="cell" >
+				<item type="boolean" >1 0 0 0 0 1 0 0</item>
+				<item type="boolean" >0 0 1 1 0 0 0 0</item>
+				<item type="boolean" >0 1 0 1 0 0 0 0</item>
+				<item type="boolean" >0 0 0 1 1 0 0 0</item>
+				<item type="boolean" >0 0 0 1 0 1 0 0</item>
+				<item type="boolean" >0 0 0 1 0 0 1 0</item>
+				<item type="boolean" >0 0 0 0 0 1 1 0</item>
+				<item type="boolean" >0 0 0 1 0 1 0 0</item>
+				<item type="boolean" >0 0 1 0 0 1 0 0</item>
+			</set3>
 		</projSpaceSets>
 		<isDynamicProjEnabled type="boolean" >1</isDynamicProjEnabled>
 	</projectionProps>
@@ -21,20 +39,32 @@
 		<methodName type="char" >manual</methodName>
 		<methodProps type="struct" >
 			<manual type="struct" >
-				<lsGoodDirSetName type="char" >set1</lsGoodDirSetName>
+				<lsGoodDirSetName type="char" >set2</lsGoodDirSetName>
 				<lsGoodDirSets type="struct" >
 					<set1 type="cell" >
 						<item type="double" >1 0 0 0 0 0 0 0</item>
+						<item type="double" >0 1 0 0 0 0 0 0</item>
 						<item type="double" >0 0 1 0 0 0 0 0</item>
+						<item type="double" >0 0 0 1 0 0 0 0</item>
+						<item type="double" >0 0 0 0 1 0 0 0</item>
+						<item type="double" >0 0 0 0 0 1 0 0</item>
+						<item type="double" >0 0 0 0 0 0 1 0</item>
+						<item type="double" >0 0 0 0 0 0 0 1</item>
 					</set1>
+					<set2 type="cell" >
+						<item type="double" >0 0 0 -1 0 0 0 0</item>
+					</set2>
+					<set3 type="cell" >
+						<item type="double" >0 0 0 1 0 1 0 0</item>
+					</set3>
 				</lsGoodDirSets>
 			</manual>
 			<auto type="struct" >
-				<nGoodDirs type="double" >1</nGoodDirs>
-				<goodDirSpaceVec type="boolean" >1 0 1 0 0 0 0 0</goodDirSpaceVec>
+				<nGoodDirs type="double" >3</nGoodDirs>
+				<goodDirSpaceVec type="boolean" >0 1 0 1 0 0 0 0</goodDirSpaceVec>
 			</auto>
 		</methodProps>
-		<selectionTime type="double" >4</selectionTime>
+		<selectionTime type="double" >5.031</selectionTime>
 	</goodDirSelection>
 	<customResultDir type="struct" >
 		<isEnabled type="boolean" >0</isEnabled>
@@ -77,7 +107,7 @@
 	</plottingProps>
 	<ellipsoidalApxProps type="struct" >
 		<internalApx type="struct" >
-			<isEnabled type="boolean" >0</isEnabled>
+			<isEnabled type="boolean" >1</isEnabled>
 			<schemas type="struct" >
 				<noUncertSqrtQ type="struct" >
 					<isEnabled type="boolean" >1</isEnabled>
@@ -92,22 +122,22 @@
 					</props>
 				</noUncertJustQ>
 			</schemas>
-			<dispScaleFactor type="double" >0.98</dispScaleFactor>
+			<dispScaleFactor type="double" >0.97</dispScaleFactor>
 		</internalApx>
 		<externalApx type="struct" >
-			<isEnabled type="boolean" >0</isEnabled>
+			<isEnabled type="boolean" >1</isEnabled>
 			<schemas type="struct" >
 				<justQ type="struct" >
 					<isEnabled type="boolean" >1</isEnabled>
 				</justQ>
 			</schemas>
-			<dispScaleFactor type="double" >1.02</dispScaleFactor>
+			<dispScaleFactor type="double" >1.01</dispScaleFactor>
 		</externalApx>
 		<extIntApx type="struct" >
-			<isEnabled type="boolean" >1</isEnabled>
+			<isEnabled type="boolean" >0</isEnabled>
 			<schemas type="struct" >
 				<uncert type="struct" >
-					<isEnabled type="boolean" >1</isEnabled>
+					<isEnabled type="boolean" >0</isEnabled>
 					<props type="struct" >
 						<selectionMethodForSMatrix type="char" >volume</selectionMethodForSMatrix>
 						<minQSqrtMatEig type="double" >0.1</minQSqrtMatEig>
@@ -116,12 +146,12 @@
 			</schemas>
 		</extIntApx>
 	</ellipsoidalApxProps>
-	<systemDefinitionConfName type="char" >basicuncert</systemDefinitionConfName>
+	<systemDefinitionConfName type="char" >yuchenZhouProb1</systemDefinitionConfName>
 	<regularizationProps type="struct" >
-		<isEnabled type="boolean" >0</isEnabled>
+		<isEnabled type="boolean" >1</isEnabled>
 		<isJustCheck type="boolean" >0</isJustCheck>
 		<regTol type="double" >1e-05</regTol>
 	</regularizationProps>
 </valueObj>
-<keyStr type="char" >basic3_pair</keyStr>
+<keyStr type="char" >yuchenZhouProb1</keyStr>
 </root>
