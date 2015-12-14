@@ -81,9 +81,9 @@ classdef SuiteRegression < mlunitext.test_case
                     SRunProp.plotterObj.closeAllFigures();
                 end
                 %
-                calcPrecision=curCrm.getParam('genericProps.calcPrecision');                
+                absTol=curCrm.getParam('genericProps.absTol');                
                 isOk=all(SRunProp.ellTubeProjRel.absTol<=...
-                    calcPrecision);
+                    absTol);
                 mlunitext.assert_equals(true,isOk);
                 %
                 compFieldNameList=setdiff(fieldnames(SRunProp),...
