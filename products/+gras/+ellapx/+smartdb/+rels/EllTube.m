@@ -35,9 +35,6 @@ classdef EllTube<gras.ellapx.smartdb.rels.ATypifiedAdjustedRel&...
             self.checkDataConsistency();
         end
     end
-    properties (GetAccess=private,Constant)
-        DEFAULT_SCALE_FACTOR=1;
-    end
     methods (Access=protected,Static,Hidden)
         function outObj=loadobj(inpObj)
             import gras.ellapx.smartdb.rels.ATypifiedAdjustedRel;
@@ -249,103 +246,145 @@ classdef EllTube<gras.ellapx.smartdb.rels.ATypifiedAdjustedRel&...
     end
     methods (Static)
         function ellTubeRel=fromQArrays(QArrayList,aMat,varargin)
-            % FROMQARRAYS  - creates a relation object using an array of ellipsoids,
-            %                described by the array of ellipsoid matrices and
-            %                array of ellipsoid centers. This method used default
-            %                scale factor.
+            % FROMQARRAYS  - creates an ellipsoidal tubes object
+            %   using an array of ellipsoid configuration matrices and
+            %   ellipsoid centers along with other parameters
             %
             % Input:
             %   regular:
-            %     QArrayList: double[nDim1, nDim2, ..., nDimN] - array of ellipsoid
-            %         matrices
-            %     aMat: double[nDim1, nDim2, ..., nDimN] - array of ellipsoid centers
-            %     timeVec:cell[1, m] - time vector
-            %     ltGoodDirArray:cell[1, nElem] - good direction at time s
-            %     sTime:double[1, 1] - time s
-            %     approxType:gras.ellapx.enums.EApproxType - type of approximation
+            %       QArrayList: cell[nTubes,1]/cell[1,nTubes] of 
+            %           double[nDims,nDims,nTimePoints] - list of arrays of
+            %               ellipsoidal tube configuration matrices 
+            %               where nDims is a dimension of ellipsoid 
+            %               and nTimePoints is a number of time points
+            %       aMat: double[nDims,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of 
+            %           double[nDims,nTimePoints] - an array of ellipsoidal
+            %               centers 
+            %               OR 
+            %               a list of arrays of ellipsoidal centers
+            %       timeVec: double[1,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of
+            %           double[1,nTimePoints] - a time point vector or
+            %               a list of time point vectors
+            %       ltGoodDirArray: double[nDims,nTubes,nTimePoints] 
+            %           OR
+            %           double[nDims,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of
+            %           double[nDims,nTimePoints] - an array of l(t) for
+            %               each tube 
+            %               OR an array of l(t) for all tubes 
+            %               OR a list of l(t) arrays for each tube
+            %       sTime: double[1,1]
+            %           OR 
+            %           double[nTubes,1] - a value of s time for all tubes
+            %               OR
+            %               an array of s time values for each tube
+            %       approxType: gras.ellapx.enums.EApproxType[1,1]
+            %           /[nTubes,1]/[1,nTubes]  - type/types of approximation 
             %                  (external, internal, not defined)
-            %     approxSchemaName:cell[1,] - name of the schema
-            %     approxSchemaDescr:cell[1,] - description of the schema
-            %     absTol:double[1, 1] - absolute tolerance
-            %     relTol:double[1, 1] - relative tolerance
+            %       approxSchemaName: cell[nTubes,1]/cell[1,nTubes] of char[1,]
+            %           OR 
+            %           char[1,] - names/name of approximation schema
+            %       approxSchemaDescr: cell[nTubes,1]/cell[1,nTubes] of
+            %           char[1,]
+            %           OR
+            %           char[1,] - - descriptions/description of
+            %               approximation schema
+            %       absTol: double[1,1]/[nTubes,1]/[1,nTubes] - absolute
+            %           tolerance/tolerances for each tube
+            %       relTol: double[1,1]/[nTubes,1]/[1,nTubes] - relative
+            %           tolerance/tolerances for each tube
+            %       scaleFactorVec: double[1,1]/[nTubes,1]/[1,nTubes] -
+            %           scale factor/factors for each tube
+            %       isScaleFactorApplied: logical[1,1] - if true, scalor
+            %           factor values from scaleFactorVec are considered
+            %           already applied, otherwise scaling is performed
+            %           automatically
             % Output:
-            %     ellTubeRel: smartdb.relation.StaticRelation[1, 1] - constructed relation
-            %         object
+            %   ellTubeRel: gras.ellapx.smartdb.rels.EllTube[1,1]
+            %       - constructed ellipsoidal tubes object
+            %
             import gras.ellapx.smartdb.rels.EllTube;
             import gras.ellapx.smartdb.rels.EllTubeBasic;
             %
             MArrayList=cellfun(@(x)zeros(size(x)),QArrayList,...
                 'UniformOutput',false);
             STubeData=EllTubeBasic.fromQArraysInternal(QArrayList,aMat,...
-                MArrayList,varargin{:},...
-                EllTube.DEFAULT_SCALE_FACTOR(ones(size(MArrayList))));
+                MArrayList,varargin{:});
             ellTubeRel=EllTube(STubeData);
         end
         function ellTubeRel=fromQMArrays(QArrayList,aMat,MArrayList,...
                 varargin)
-            % FROMQMARRAYS  - creates a relation object using an array of ellipsoids,
-            %                 described by the array of ellipsoid matrices and
-            %                 array of ellipsoid centers. Also this method uses
-            %                 regularizer in the form of a matrix function. This method
-            %                 used default scale factor.
+            % FROMQMARRAYS  - creates an ellipsoidal tubes object
+            %   using an array of ellipsoid configuration matrices,
+            %   ellipsoid centers and an array of ellipsoidal tube 
+            %   regularization matrices along with other parameters
             %
             % Input:
             %   regular:
-            %       QArrayList: double[nDim1, nDim2, ..., nDimN] - array of ellipsoid
-            %             matrices
-            %       aMat: double[nDim1, nDim2, ..., nDimN] - array of ellipsoid centers
-            %       MArrayList: double[nDim1, nDim2, ..., nDimN] - ellipsoid  matrices of
-            %             regularization
-            %       timeVec:cell[1, m] - time vector
-            %       ltGoodDirArray:cell[1, nElem] - good direction at time s
-            %       sTime:double[1, 1] - time s
-            %       approxType:gras.ellapx.enums.EApproxType - type of approximation
+            %       QArrayList: cell[nTubes,1]/cell[1,nTubes] of 
+            %           double[nDims,nDims,nTimePoints] - list of arrays of
+            %               ellipsoidal tube configuration matrices 
+            %               where nDims is a dimension of ellipsoid 
+            %               and nTimePoints is a number of time points
+            %       aMat: double[nDims,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of 
+            %           double[nDims,nTimePoints] - an array of ellipsoidal
+            %               centers 
+            %               OR 
+            %               a list of arrays of ellipsoidal centers
+            %       MArrayList: cell[nTubes,1]/cell[1,nTubes] of 
+            %           double[nDims,nDims,nTimePoints] - list of arrays of
+            %               ellipsoidal tube regularization matrices 
+            %       timeVec: double[1,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of
+            %           double[1,nTimePoints] - a time point vector or
+            %               a list of time point vectors
+            %       ltGoodDirArray: double[nDims,nTubes,nTimePoints] 
+            %           OR
+            %           double[nDims,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of
+            %           double[nDims,nTimePoints] - an array of l(t) for
+            %               each tube 
+            %               OR an array of l(t) for all tubes 
+            %               OR a list of l(t) arrays for each tube
+            %       sTime: double[1,1]
+            %           OR 
+            %           double[nTubes,1] - a value of s time for all tubes
+            %               OR
+            %               an array of s time values for each tube
+            %       approxType: gras.ellapx.enums.EApproxType[1,1]
+            %           /[nTubes,1]/[1,nTubes]  - type/types of approximation 
             %                  (external, internal, not defined)
-            %       approxSchemaName:cell[1,] - name of the schema
-            %       approxSchemaDescr:cell[1,] - description of the schema
-            %       absTol:double[1, 1] - absolute tolerance
-            %       relTol:double[1, 1] - relative tolerance
-            %
+            %       approxSchemaName: cell[nTubes,1]/cell[1,nTubes] of char[1,]
+            %           OR 
+            %           char[1,] - names/name of approximation schema
+            %       approxSchemaDescr: cell[nTubes,1]/cell[1,nTubes] of
+            %           char[1,]
+            %           OR
+            %           char[1,] - - descriptions/description of
+            %               approximation schema
+            %       absTol: double[1,1]/[nTubes,1]/[1,nTubes] - absolute
+            %           tolerance/tolerances for each tube
+            %       relTol: double[1,1]/[nTubes,1]/[1,nTubes] - relative
+            %           tolerance/tolerances for each tube
+            %       scaleFactorVec: double[1,1]/[nTubes,1]/[1,nTubes] -
+            %           scale factor/factors for each tube
+            %       isScaleFactorApplied: logical[1,1] - if true, scalor
+            %           factor values from scaleFactorVec are considered
+            %           already applied, otherwise scaling is performed
+            %           automatically
             % Output:
-            %    ellTubeRel: smartdb.relation.StaticRelation[1, 1] - constructed relation
-            %          object
-            import gras.ellapx.smartdb.rels.EllTube;
-            import gras.ellapx.smartdb.rels.EllTubeBasic;
+            %   ellTubeRel: gras.ellapx.smartdb.rels.EllTube[1,1]
+            %       - constructed ellipsoidal tubes object
             %
-            STubeData=EllTubeBasic.fromQArraysInternal(QArrayList,aMat,...
-                MArrayList,varargin{:},...
-                EllTube.DEFAULT_SCALE_FACTOR(ones(size(MArrayList))));
-            ellTubeRel=EllTube(STubeData);
-        end
-        function ellTubeRel=fromQMScaledArrays(QArrayList,aMat,MArrayList,...
-                varargin)
-            % FROMQMSCALEDARRAYS  - creates a relation object using an array of ellipsoids,
-            %                       described by the array of ellipsoid matrices and
-            %                       array of ellipsoid centers. Also this method uses
-            %                       regularizer in the form of a matrix function.
-            %
-            %
-            % Input:
-            %   regular:
-            %       QArrayList: double[nDim1, nDim2, ..., nDimN] - array of ellipsoid
-            %           matrices
-            %       aMat: double[nDim1, nDim2, ..., nDimN] - array of ellipsoid centers
-            %       MArrayList: double[nDim1, nDim2, ..., nDimN] - ellipsoid matrices
-            %           of regularization
-            %       timeVec:cell[1, m] - time vector
-            %           ltGoodDirArray:cell[1, nElem] - good direction at time s
-            %       sTime:double[1, 1] - time s
-            %       approxType:gras.ellapx.enums.EApproxType - type of approximation
-            %           (external, internal, not defined)
-            %       approxSchemaName:cell[1,] - name of the schema
-            %       approxSchemaDescr:cell[1,] - description of the schema
-            %       absTol:double[1, 1] - absolute tolerance
-            %       relTol:double[1, 1] - relative tolerance
-            %       scaleFactor:double[1, 1] - tube scale factor
-            %
-            % Output:
-            %    ellTubeRel: smartdb.relation.StaticRelation[1, 1] - constructed relation
-            %          object
             import gras.ellapx.smartdb.rels.EllTube;
             import gras.ellapx.smartdb.rels.EllTubeBasic;
             %
@@ -353,40 +392,89 @@ classdef EllTube<gras.ellapx.smartdb.rels.ATypifiedAdjustedRel&...
                 MArrayList,varargin{:});
             ellTubeRel=EllTube(STubeData);
         end
-        function ellTubeRel = fromEllMArray(qEllArray, ellMArr, varargin)
-            % FROMELLMARRAY  - creates a relation object using an array of ellipsoids.
-            %                  This method uses regularizer in the form of a matrix
-            %                  function. Default scale factor is used.
+        function ellTubeRel = fromEllMArray(qEllArrList, MArrayList, varargin)
+            % FROMELLMARRAYS  - creates an ellipsoidal tubes object
+            %   using an array of ellipsoid representing ellipsoidal tube cuts,
+            %   ellipsoid centers and an array of ellipsoidal tube 
+            %   regularization matrices along with other parameters
             %
             % Input:
             %   regular:
-            %       qEllArray: ellipsoid[nDim1, nDim2, ..., nDimN] - array of ellipsoids
-            %       ellMArr: double[nDim1, nDim2, ..., nDimN] - regularization ellipsoid
-            %           matrices
-            %       timeVec:cell[1, m] - time vector
-            %       ltGoodDirArray:cell[1, nElem] - good direction at time s
-            %       sTime:double[1, 1] - time s
-            %       approxType:gras.ellapx.enums.EApproxType - type of approximation
-            %           (external, internal, not defined)
-            %       approxSchemaName:cell[1,] - name of the schema
-            %       approxSchemaDescr:cell[1,] - description of the schema
-            %       absTol:double[1, 1] - absolute tolerance
-            %       relTol:double[1, 1] - relative tolerance
-            %
+            %       qEllArrList: ellipsoid[1,nTimePoints]
+            %           OR
+            %           cell[1,nTubes]/[nTubes,1] of
+            %           ellipsoid[1,nTimePoints] -
+            %               vector of ellipsoids
+            %               OR 
+            %               a list of ellipsoid vectors representing cuts
+            %               for each ellipsoidal tube
+            %               where nDims is a dimension of ellipsoid 
+            %               and nTimePoints is a number of time points
+            %       aMat: double[nDims,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of 
+            %           double[nDims,nTimePoints] - an array of ellipsoidal
+            %               centers 
+            %               OR 
+            %               a list of arrays of ellipsoidal centers
+            %       MArrayList: cell[nTubes,1]/cell[1,nTubes] of 
+            %           double[nDims,nDims,nTimePoints] - list of arrays of
+            %               ellipsoidal tube regularization matrices 
+            %       timeVec: double[1,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of
+            %           double[1,nTimePoints] - a time point vector or
+            %               a list of time point vectors
+            %       ltGoodDirArray: double[nDims,nTubes,nTimePoints] 
+            %           OR
+            %           double[nDims,nTimePoints] 
+            %           OR
+            %           cell[nTubes,1]/cell[1,nTubes] of
+            %           double[nDims,nTimePoints] - an array of l(t) for
+            %               each tube 
+            %               OR an array of l(t) for all tubes 
+            %               OR a list of l(t) arrays for each tube
+            %       sTime: double[1,1]
+            %           OR 
+            %           double[nTubes,1] - a value of s time for all tubes
+            %               OR
+            %               an array of s time values for each tube
+            %       approxType: gras.ellapx.enums.EApproxType[1,1]
+            %           /[nTubes,1]/[1,nTubes]  - type/types of approximation 
+            %                  (external, internal, not defined)
+            %       approxSchemaName: cell[nTubes,1]/cell[1,nTubes] of char[1,]
+            %           OR 
+            %           char[1,] - names/name of approximation schema
+            %       approxSchemaDescr: cell[nTubes,1]/cell[1,nTubes] of
+            %           char[1,]
+            %           OR
+            %           char[1,] - - descriptions/description of
+            %               approximation schema
+            %       absTol: double[1,1]/[nTubes,1]/[1,nTubes] - absolute
+            %           tolerance/tolerances for each tube
+            %       relTol: double[1,1]/[nTubes,1]/[1,nTubes] - relative
+            %           tolerance/tolerances for each tube
+            %       scaleFactorVec: double[1,1]/[nTubes,1]/[1,nTubes] -
+            %           scale factor/factors for each tube
+            %       isScaleFactorApplied: logical[1,1] - if true, scalor
+            %           factor values from scaleFactorVec are considered
+            %           already applied, otherwise scaling is performed
+            %           automatically
             % Output:
-            %    ellTubeRel: smartdb.relation.StaticRelation[1, 1] - constructed relation
-            %          object
+            %   ellTubeRel: gras.ellapx.smartdb.rels.EllTube[1,1]
+            %       - constructed ellipsoidal tubes object
+            %
             import gras.ellapx.smartdb.rels.EllTube;
             import gras.ellapx.smartdb.rels.EllTubeBasic;
+            
             nPoints = length(qEllArray);
-            nDims = size(parameters(qEllArray(1)), 1);
+            nDims = qEllArray(1).dimension();
             qArray = zeros(nDims, nDims, nPoints);
             aMat = zeros(nDims, nPoints);
             arrayfun(@(iPoint)fCalcAMatAndQArray(iPoint), 1:nPoints);
             %
             STubeData=EllTubeBasic.fromQArraysInternal({qArray}, aMat,...
-                {ellMArr},varargin{:},...
-                EllTube.DEFAULT_SCALE_FACTOR(1));
+                {MArrayList},varargin{:});
             ellTubeRel=EllTube(STubeData);
             %
             function fCalcAMatAndQArray(iPoint)

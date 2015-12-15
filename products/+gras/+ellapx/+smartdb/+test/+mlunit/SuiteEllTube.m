@@ -36,28 +36,28 @@ classdef SuiteEllTube < mlunitext.test_case
             import gras.ellapx.proj.EllTubeStaticSpaceProjector;
             nDirs = 4;
             tEnd = 1;
-            q11 = @(t)[cos(2*pi*t/nDirs) sin(2*pi*t/nDirs);...
+            q11Mat = @(t)[cos(2*pi*t/nDirs) sin(2*pi*t/nDirs);...
                 -sin(2*pi*t/nDirs)  cos(2*pi*t/nDirs)];
-            ltGDir = [];
+            ltGDirMat = [];
             QArrList = cell(nDirs+1,1);
             sTime =1;
             timeVec = 1:tEnd;
             for iElem= 0:nDirs
-                ltGDir = [ltGDir ([1 0]*q11(iElem))']; %#ok<AGROW>
-                QArrListTemp = ...
-                    repmat(q11(iElem)'*diag([1 4])*q11(iElem),[1,1,tEnd]);
-                QArrList{iElem+1} = QArrListTemp;
+                ltGDirMat = [ltGDirMat ([1;0]*q11Mat(iElem))]; %#ok<AGROW>
+                QArrListTmpArr = ...
+                    repmat(q11Mat(iElem)*diag([1 4])*q11Mat(iElem),...
+                    [1,1,tEnd]);
+                QArrList{iElem+1} = QArrListTmpArr;
             end
             
-            ltGDir = repmat(ltGDir,[1 1 tEnd]);
-            aMat = repmat([1 0]',[1,tEnd]);
+            ltGDirMat = repmat(ltGDirMat,[1 1 tEnd]);
+            aMat = repmat([1;0],[1,tEnd]);
             approxType = gras.ellapx.enums.EApproxType(1);
             ABS_TOL = 10^(-3);
             REL_TOL = 10^(-3);
             rel = gras.ellapx.smartdb.rels.EllUnionTube.fromEllTubes(...
-                gras.ellapx.smartdb.rels.EllTube.fromQArrays(QArrList',...
-                aMat...
-                ,timeVec,ltGDir,sTime',approxType,...
+                gras.ellapx.smartdb.rels.EllTube.fromQArrays(QArrList,...
+                aMat,timeVec,ltGDirMat,sTime,approxType,...
                 char.empty(1,0),char.empty(1,0),...
                 ABS_TOL, REL_TOL));
             projSpaceList = {eye(1, 2)};
@@ -105,7 +105,7 @@ classdef SuiteEllTube < mlunitext.test_case
             timeVec = 1 : nPoints;
             [rel,relProj]=create(timeVec);
             checkMaster(relProj,2);
-            checkMaster(rel,1);            
+            checkMaster(rel,1);
             %
             function checkMaster(rel,outNum)
                 check(rel,cutTimeVec,outNum);
@@ -117,14 +117,14 @@ classdef SuiteEllTube < mlunitext.test_case
                 [outList{:}]=create(cutTimeVec(1):cutTimeVec(end));
                 expRel=outList{outNum};
                 %
-                fieldToExcludeList = rel.getNoCatOrCutFieldsList();                
+                fieldToExcludeList = rel.getNoCatOrCutFieldsList();
                 fieldList = setdiff(cutRel.getFieldNameList(),...
                     fieldToExcludeList);
                 %
                 [isOk,reportStr] = ...
                     cutRel.getFieldProjection(fieldList).isEqual(...
                     expRel.getFieldProjection(fieldList));
-                mlunitext.assert(isOk, reportStr);                 
+                mlunitext.assert(isOk, reportStr);
             end
             %
             function [rel,varargout] = create(timeVec)
@@ -156,9 +156,9 @@ classdef SuiteEllTube < mlunitext.test_case
                         %
                         relStatProj=rel.projectStatic(projMatList);
                         varargout{1}=relStatProj;
-                    end                    
+                    end
                 end
-            end            
+            end
         end
         function testCat(~)
             nDims=2;
@@ -597,6 +597,20 @@ classdef SuiteEllTube < mlunitext.test_case
                 end
             end
         end
+        function testNoTouch(self)
+            import gras.ellapx.smartdb.rels.EllTube;
+            N_POINTS=10;
+            N_TUBES=3;
+            ABS_TOL=1e-4;
+            REL_TOL=1e-5;
+            [rel,~]=auxGenSimpleTubeAndProj(self,...
+                N_POINTS,N_TUBES,1,...
+                1,ABS_TOL,REL_TOL);
+            rel2=EllTube.fromQArrays(rel.QArray,rel.aMat,rel.timeVec,...
+                rel.ltGoodDirMat,rel.sTime,....
+                rel.approxType,rel.approxSchemaName,...
+                rel.approxSchemaDescr,ABS_TOL,REL_TOL,rel.scaleFactor,true);
+        end
         function testThinOutTuples(self)
             nFirstPoints=100;
             nTubes=2;
@@ -627,17 +641,26 @@ classdef SuiteEllTube < mlunitext.test_case
         end
         %
         function varargout=auxGenSimpleTubeAndProj(~,...
-                nPoints,nTubes,indSTime,indStart)
+                nPoints,nTubes,indSTime,indStart,absTol,relTol)
             persistent hashMap;
-            if nargin<5
-                indStart=1;
-                if nargin<4
-                    indSTime=nPoints;
-                    if nargin<3
-                        nTubes=1;
+            ABS_TOL_DEFAULT = 10^(-3);
+            REL_TOL_DEFAULT = 10^(-3);
+            if nargin<7
+                relTol=REL_TOL_DEFAULT;
+                if nargin<6
+                    absTol=ABS_TOL_DEFAULT;
+                    if nargin<5
+                        indStart=1;
+                        if nargin<4
+                            indSTime=nPoints;
+                            if nargin<3
+                                nTubes=1;
+                            end
+                        end
                     end
                 end
             end
+            %
             if isempty(hashMap)
                 hashMap=containers.Map();
             end
@@ -647,8 +670,6 @@ classdef SuiteEllTube < mlunitext.test_case
                 argList=hashMap(keyStr);
                 [varargout{:}]=deal(argList{:});
             else
-                ABS_TOL = 10^(-3);
-                REL_TOL = 10^(-3);
                 approxSchemaDescr=char.empty(1,0);
                 approxSchemaName=char.empty(1,0);
                 nDims=2;
@@ -709,7 +730,7 @@ classdef SuiteEllTube < mlunitext.test_case
                 rel=gras.ellapx.smartdb.rels.EllTube.fromQArrays(...
                     QArrayList, aMat, timeVec,...
                     ltGoodDirArray, sTime, approxType, approxSchemaName,...
-                    approxSchemaDescr, ABS_TOL, REL_TOL);
+                    approxSchemaDescr, absTol, relTol);
             end
         end
         function aux_testSimpleCreate(self,isApproxSchemaUniform)
@@ -843,7 +864,7 @@ classdef SuiteEllTube < mlunitext.test_case
             %
             [isEqual,reportStr]=...
                 fromMatMEllTube.isEqual(fromMatMEllScaledTube);
-            mlunitext.assert(isEqual,reportStr);            
+            mlunitext.assert(isEqual,reportStr);
             %
             fromEllArrayEllTube = ...
                 gras.ellapx.smartdb.rels.EllTube.fromEllArray(...
@@ -1138,7 +1159,7 @@ classdef SuiteEllTube < mlunitext.test_case
                 projSpaceList, @fGetProjMat);
             self.runAndCheckError(...
                 ['projEllTube.isEqual('...
-                'mixedExtIntEllTube);'],'wrongInput');            
+                'mixedExtIntEllTube);'],'wrongInput');
             %
             proj2EllTube = interpMixedEllTube.project(projType,...
                 projSpaceList, @fGetProjMat);

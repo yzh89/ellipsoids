@@ -7,6 +7,9 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
         FCODE_SCALE_FACTOR
         FCODE_M_ARRAY
     end
+    properties (GetAccess=private,Constant)
+        DEFAULT_SCALE_FACTOR=1;
+    end    
     methods
         function fieldsList = getNoCatOrCutFieldsList(~)
             import  gras.ellapx.smartdb.F;
@@ -230,7 +233,8 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
         end
         function STubeData=fromQArraysInternal(QArrayList,aMat,...
                 MArrayList,timeVec,ltGoodDirArray,sTime,approxType,...
-                approxSchemaName,approxSchemaDescr,absTol,relTol,scaleFactorVec)
+                approxSchemaName,approxSchemaDescr,absTol,relTol,...
+                scaleFactorVec,isScalingApplied)
             %
             % $Author: Peter Gagarinov  <pgagarinov@gmail.com> $	$Date: 2011 $
             % $Copyright: Moscow State University,
@@ -242,26 +246,83 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
             import gras.gen.SquareMatVector;
             import gras.ode.MatrixODESolver;
             import gras.ellapx.smartdb.rels.EllTubeBasic;
-            import modgen.common.type.simple.checkgenext;
+            import modgen.common.checkmultvar;
             %
-            checkgenext(['numel(x1)==numel(x2)&&numel(x2)==numel(x3)',...
-                '&&isrow(x1)&&isrow(x2)&&isrow(x3)&&isnumeric(x3)'],3,...
+            if nargin<13
+                isScalingApplied=false;
+                if nargin<12
+                    scaleFactorVec=...
+                        EllTubeBasic.DEFAULT_SCALE_FACTOR(...
+                        ones(size(MArrayList)));
+                end
+            end
+            %
+            checkmultvar(['numel(x1)==numel(x2)&&numel(x2)==numel(x3)',...
+                '&&iscell(x1)&&iscell(x2)&&isnumeric(x3)',...
+                '&&~isempty(x1)'],3,...
                 QArrayList,MArrayList,scaleFactorVec);
             %
             nLDirs=length(QArrayList);
+            checkmultvar(...
+                ['((iscell(x2)&&numel(x2)==x1)||isnumeric(x2))',...
+                '&&((iscell(x3)&&numel(x3)==x1)||isnumeric(x3))',...
+                '&&((iscell(x4)&&numel(x4)==x1)||',...
+                'isnumeric(x4)&&(ndims(x4)==3||ndims(x4)==2))'],4,...
+                nLDirs,aMat,timeVec,ltGoodDirArray);
+            checkmultvar(...
+                ['((iscell(x2)&&numel(x2)==x1)||ischar(x2))',...
+                '&&((iscell(x3)&&numel(x3)==x1)||ischar(x3))'],3,...
+                nLDirs,approxSchemaName,approxSchemaDescr);
+            checkmultvar(...
+                ['(isnumeric(x2)&&isscalar(x2)||numel(x2)==x1)',...
+                '&&(isnumeric(x3)&&isscalar(x3)||numel(x3)==x1)',...
+                '&&(isnumeric(x4)&&isscalar(x4)||numel(x4)==x1)',...
+                '&&(isnumeric(x5)&&isscalar(x5)||numel(x5)==x1)'],5,...
+                nLDirs,scaleFactorVec,sTime,absTol,relTol);
+            %
             STubeData=struct;
             %
-            STubeData.scaleFactor=ones(nLDirs,1);
-            STubeData.QArray=QArrayList.';
-            STubeData.aMat=repmat({aMat},nLDirs,1);
+            if isrow(scaleFactorVec)
+                scaleFactorVec=scaleFactorVec.';
+            end
+            if isscalar(scaleFactorVec)
+                scaleFactorVec=repmat(scaleFactorVec,nLDirs,1);
+            end
+            if isScalingApplied
+                STubeData.scaleFactor=scaleFactorVec;
+            else
+                STubeData.scaleFactor=ones(nLDirs,1);
+            end
+            if isrow(QArrayList)
+                QArrayList=QArrayList.';
+            end
+            STubeData.QArray=QArrayList;
+            if isnumeric(aMat)
+                aMat=repmat({aMat},nLDirs,1);
+            elseif isrow(aMat)
+                aMat=aMat.';
+            end
+            STubeData.aMat=aMat;
             %
-            STubeData.MArray=MArrayList.';
+            if isrow(MArrayList)
+                MArrayList=MArrayList.';
+            end
+            STubeData.MArray=MArrayList;
             %
-            STubeData.dim=repmat(size(aMat,1),nLDirs,1);
+            STubeData.dim=repmat(size(aMat{1},1),nLDirs,1);
             %
-            STubeData.sTime=repmat(sTime,nLDirs,1);
+            if numel(sTime)>1
+                STubeData.sTime=sTime;
+            else
+                STubeData.sTime=repmat(sTime,nLDirs,1);
+            end
             %
-            STubeData.timeVec=repmat({timeVec},nLDirs,1);
+            if isnumeric(timeVec)
+                timeVec=repmat({timeVec},nLDirs,1);
+            elseif isrow(timeVec)
+                timeVec=timeVec.';
+            end
+            STubeData.timeVec=timeVec;
             %
             if length(approxType) > 1
                 STubeData.approxType=approxType;
@@ -269,12 +330,12 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
                 STubeData.approxType=repmat(approxType,nLDirs,1);
             end
             %
-            if iscell(approxSchemaName)
-                STubeData.approxSchemaName=approxSchemaName;
-            else
-                STubeData.approxSchemaName=repmat({approxSchemaName},...
-                    nLDirs,1);
+            if ischar(approxSchemaName)
+                approxSchemaName=repmat({approxSchemaName},nLDirs,1);
+            elseif isrow(approxSchemaName)
+                approxSchemaName=approxSchemaName.';
             end
+            STubeData.approxSchemaName=approxSchemaName;
             %
             if iscell(approxSchemaDescr)
                 STubeData.approxSchemaDescr=approxSchemaDescr;
@@ -283,20 +344,41 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
                     nLDirs,1);
             end
             %
-            STubeData.ltGoodDirMat=cell(nLDirs,1);
-            %
-            STubeData.ltGoodDirNormVec=cell(nLDirs,1);
-            %
-            STubeData.absTol=repmat(absTol,nLDirs,1);
-            %
-            STubeData.relTol=repmat(relTol,nLDirs,1);
-            %
-            for iLDir=1:1:nLDirs
-                STubeData.ltGoodDirMat{iLDir}=...
-                    squeeze(ltGoodDirArray(:,iLDir,:));
+            if isscalar(absTol)
+                absTol=repmat(absTol,nLDirs,1);
             end
+            %
+            STubeData.absTol=absTol;
+            %
+            if isscalar(relTol)
+                relTol=repmat(relTol,nLDirs,1);
+            end
+            STubeData.relTol=relTol;
+            %
+            if isnumeric(ltGoodDirArray)
+                if ~ismatrix(ltGoodDirArray)
+                    ltGoodDirMatList=cell(nLDirs,1);
+                    for iLDir=1:1:nLDirs
+                        ltGoodDirMatList{iLDir}=...
+                            squeeze(ltGoodDirArray(:,iLDir,:));
+                    end
+                else
+                    ltGoodDirMatList=repmat({ltGoodDirArray},nLDirs,1);
+                end
+            else
+                if isrow(ltGoodDirArray)
+                    ltGoodDirMatList=ltGoodDirArray.';
+                else
+                    ltGoodDirMatList=ltGoodDirArray;
+                end
+            end
+            STubeData.ltGoodDirMat=ltGoodDirMatList;
+            %
             STubeData=EllTubeBasic.calcGoodCurveData(STubeData);
-            STubeData=EllTubeBasic.scaleTubeData(STubeData,scaleFactorVec.');
+            if ~isScalingApplied
+                STubeData=EllTubeBasic.scaleTubeData(STubeData,...
+                    scaleFactorVec);
+            end
             STubeData=EllTubeBasic.calcTouchCurveData(STubeData);
         end
     end
