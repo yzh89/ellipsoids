@@ -97,9 +97,10 @@ classdef SuiteSupportFunction < mlunitext.test_case
                 SRunProp.ellTubeRel.scale(fGetScaleFactor,...
                     scaleFactorFieldList);
                 %
-                calcPrecision = crm.getParam('genericProps.calcPrecision');
+                absTol = crm.getParam('genericProps.absTol');
+                relTol = crm.getParam('genericProps.relTol');
                 isOk = all(SRunProp.ellTubeProjRel.absTol <=...
-                    calcPrecision);
+                    absTol);
                 mlunitext.assert_equals(true,isOk);
                 %
                 pDynObj=SRunAuxProp.pDynObj;
@@ -124,8 +125,8 @@ classdef SuiteSupportFunction < mlunitext.test_case
                 ellCenterCMat = SRunProp.ellTubeRel.aMat;
                 %
                 OdeOptionsStruct = odeset(...
-                    'RelTol', calcPrecision * self.REL_TOL_FACTOR,...
-                    'AbsTol', calcPrecision * self.ABS_TOL_FACTOR);
+                    'RelTol', relTol * self.REL_TOL_FACTOR,...
+                    'AbsTol', absTol * self.ABS_TOL_FACTOR);
                 lsGoodDirMat = SRunAuxProp.goodDirSetObj.getlsGoodDirMat();
                 for iGoodDir = 1:size(lsGoodDirMat, 2)
                     lsGoodDirMat(:, iGoodDir) = ...
