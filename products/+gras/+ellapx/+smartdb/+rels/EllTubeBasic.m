@@ -1,6 +1,8 @@
 classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
-    %TestRelation Summary of this class goes here
-    %   Detailed explanation goes here
+    % $Author: Peter Gagarinov  <pgagarinov@gmail.com> $	$Date: 2011-2015 $
+    % $Copyright: Moscow State University,
+    %            Faculty of Computational Mathematics and Computer Science,
+    %            System Analysis Department 2015 $  
     properties (Constant,Hidden)
         FCODE_Q_ARRAY %#ok<*MCCPI>
         FCODE_A_MAT
@@ -356,14 +358,10 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
             STubeData.relTol=relTol;
             %
             if isnumeric(ltGoodDirArray)
-                if ~ismatrix(ltGoodDirArray)
-                    ltGoodDirMatList=cell(nLDirs,1);
-                    for iLDir=1:1:nLDirs
-                        ltGoodDirMatList{iLDir}=...
-                            squeeze(ltGoodDirArray(:,iLDir,:));
-                    end
-                else
-                    ltGoodDirMatList=repmat({ltGoodDirArray},nLDirs,1);
+                ltGoodDirMatList=cell(nLDirs,1);
+                for iLDir=1:1:nLDirs
+                    ltGoodDirMatList{iLDir}=...
+                        squeeze(ltGoodDirArray(:,iLDir,:));
                 end
             else
                 if isrow(ltGoodDirArray)
@@ -728,8 +726,8 @@ classdef EllTubeBasic<gras.ellapx.smartdb.rels.EllTubeTouchCurveBasic
         end
     end
     methods (Access=protected)
-        function [ellTubeProjRel,indProj2OrigVec]=projectInternal(self,projType,...
-                projMatList,fGetProjMat)
+        function [ellTubeProjRel,indProj2OrigVec]=projectInternal(self,...
+                projType,projMatList,fGetProjMat)
             import gras.ellapx.uncertcalc.common.*;
             import modgen.common.throwerror;
             import gras.ellapx.common.*;

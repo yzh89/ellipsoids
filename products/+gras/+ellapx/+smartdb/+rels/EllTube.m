@@ -1,35 +1,72 @@
 classdef EllTube<gras.ellapx.smartdb.rels.ATypifiedAdjustedRel&...
         gras.ellapx.smartdb.rels.EllTubeBasic&...
         gras.ellapx.smartdb.rels.AEllTubeProjectable
-    % EllTube - class which keeps ellipsoidal tubes
+    % EllTube - ellipsoidal tube collection
     %
-    % Fields:
-    %   QArray:cell[1, nElem] - Array of ellipsoid matrices
-    %   aMat:cell[1, nElem] - Array of ellipsoid centers
-    %   scaleFactor:double[1, 1] - Tube scale factor
-    %   MArray:cell[1, nElem] - Array of regularization ellipsoid matrices
-    %   dim :double[1, 1] - Dimensionality
-    %   sTime:double[1, 1] - Time s
-    %   approxSchemaName:cell[1,] - Name
-    %   approxSchemaDescr:cell[1,] - Description
-    %   approxType:gras.ellapx.enums.EApproxType - Type of approximation
-    %                 (external, internal, not defined)
-    %   timeVec:cell[1, m] - Time vector
-    %    absTol:double[1, 1] - absolute tolerance
-    %    relTol:double[1, 1] - relative tolerance
-    %   indSTime:double[1, 1]  - index of sTime within timeVec
-    %   ltGoodDirMat:cell[1, nElem] - Good direction curve
-    %   lsGoodDirVec:cell[1, nElem] - Good direction at time s
-    %   ltGoodDirNormVec:cell[1, nElem] - Norm of good direction curve
-    %   lsGoodDirNorm:double[1, 1] - Norm of good direction at time s
-    %   xTouchCurveMat:cell[1, nElem] - Touch point curve for good
-    %                                   direction
-    %   xTouchOpCurveMat:cell[1, nElem] - Touch point curve for direction
-    %                                     opposite to good direction
-    %   xsTouchVec:cell[1, nElem]  - Touch point at time s
-    %   xsTouchOpVec :cell[1, nElem] - Touch point at time s
+    % Public properties:
+    %   QArray: cell[nTubes,1] of double[nDims,nDims,nTimePoints] - list of
+    %       ellipsoidal tube configuration matrix arrays where nDims is a tube
+    %       dimensionality and nTimePoints is a number of time points. 
+    %       Each tube can have its own values of nDims and nTimePoints
+    %   aMat: cell[nTubes,1] of double[nDims,nTimePoints] - list of ellipsoidal
+    %       tube center arrays
+    %   scaleFactor: double[nTubes,1] - tube scale factor array. Each tube
+    %       can be slightly stretched or squeezed to avoid an overlapping of
+    %       patch object edges on 3d plots. For that reason external tubes
+    %       often have a scale factor>1 while internal tubes - scale
+    %       factor<1
+    %   MArray: -same size as QArray, contain regularization matrices M(t)
+    %       arrays which are zero for systems without disturbance and for
+    %       systems with disturbance that didn't require regularization.
+    %       Matrix M(t) modifies a configuration matrix P(t) for control
+    %       constrains producing a regularized control constraint
+    %       ellipsoid configuration matrix P*(t)=P(t)+M(t).
+    %   dim: double[nTubes,1] - vector of ellipsoid tube dimensionalities
+    %   sTime: double[nTubes,1] - vector of t_s values at which initial
+    %       directions for good direction curve l(t) are specified. Usually
+    %       t_s=0 or T where T is the end of the time internal.
+    %   approxSchemaName: cell[nTubes,1] of char[1,] - list of ellipsoidal
+    %       approximation schema names
+    %   approxSchemaDescr: cell[nTubes,1] of char[1,] - list of ellipsoidal
+    %       approximation schema descriptions
+    %   approxType: gras.ellapx.enums.EApproxType[nTubes,1] - vector of
+    %       ellipsoidal approximation types, can be 
+    %       "External", "Internal" and "NotDefined"
+    %   timeVec: cell[nTubes,1] of double[1,nTimePoints] - list of time
+    %       vectors for each tube
+    %   absTol: double[nTubes,1] - vector of absolute tolerances used for
+    %       calculating the corresponding ellipsoidal tube
+    %   relTol: double[nTubes,1] - vector of relative tolerances used for
+    %       calculating the corresponding ellipsoidal tubes
+    %   indSTime: double[nTubes,1] - vector of positions of sTime 
+    %       within timeVec for each tube
+    %   ltGoodDirMat: cell[nTubes,1] of double[nDims,nTimePoints] - list of
+    %       l(t) arrays for each tube
+    %   lsGoodDirVec: cell[nTubes,1] of double[nDims,1] - list of l(t_s)
+    %       for each tube
+    %   ltGoodDirNormVec: cell[nTubes,1] of double[1,nTimePoints] - list of 
+    %       ||l(t)|| vectors for each tube
+    %   lsGoodDirNorm: double[nTubes,1] - vector of ||l(t_s)|| values
+    %   xTouchCurveMat: cell[nTubes,1] of double[nDims,nTimePoints] - list
+    %       of vectors of maximizers for \rho(l(t)|E(t)) i.e. vectors x*(t)
+    %       such that maximize scalar product (x,l(t)) where x belong
+    %       ellipsoidal tube E(t)
+    %   xTouchOpCurveMat: - same as xTouchCurveMat but for -l(t) i.e.
+    %       direction opposite to l(t)
+    %   xsTouchVec: cell[nTubes,1] of double[nDims,1] - same as 
+    %       xTouchCurveMat but just for one time point t_s
+    %   xsTouchOpVec: - same as xsTouchVec but for -l(t) i.e. direction
+    %       opposite to l(t)
+    %   isLsTouch: logical[nTubes,1] - indicates whether ellipsoidal tube 
+    %       cut E[t_s] touches a reachability tube along l(t_s)
+    %   isLtTouchVec: cell[nTubes,1] of double[1,nTimePoints] - for each
+    %       tube indicates whether a touch takes place along l(t) 
+    %       for all time points t from timeVec     
     %
-    %   TODO: correct description of the fields in gras.ellapx.smartdb.rels.EllTube
+    % $Author: Peter Gagarinov  <pgagarinov@gmail.com> $	$Date: 2011-2015 $
+    % $Copyright: Moscow State University,
+    %            Faculty of Computational Mathematics and Computer Science,
+    %            System Analysis Department 2015 $    
     methods(Access=protected)
         function changeDataPostHook(self)
             self.checkDataConsistency();
@@ -392,7 +429,7 @@ classdef EllTube<gras.ellapx.smartdb.rels.ATypifiedAdjustedRel&...
                 MArrayList,varargin{:});
             ellTubeRel=EllTube(STubeData);
         end
-        function ellTubeRel = fromEllMArray(qEllArrList, MArrayList, varargin)
+        function ellTubeRel = fromEllMArray(qEllArray, MArrayList, varargin)
             % FROMELLMARRAYS  - creates an ellipsoidal tubes object
             %   using an array of ellipsoid representing ellipsoidal tube cuts,
             %   ellipsoid centers and an array of ellipsoidal tube 
