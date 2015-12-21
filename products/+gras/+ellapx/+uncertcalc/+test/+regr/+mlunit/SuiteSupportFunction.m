@@ -1,8 +1,8 @@
 classdef SuiteSupportFunction < mlunitext.test_case
-% $Author: Kirill Mayantsev  <kirill.mayantsev@gmail.com> $  $Date: 2-11-2012 $
-% $Copyright: Moscow State University,
-%             Faculty of Computational Mathematics and Computer Science,
-%             System Analysis Department 2012 $
+    % $Author: Kirill Mayantsev  <kirill.mayantsev@gmail.com> $  $Date: 2-11-2012 $
+    % $Copyright: Moscow State University,
+    %             Faculty of Computational Mathematics and Computer Science,
+    %             System Analysis Department 2012 $
     properties (Access=private)
         testDataRootDir
         confNameList
@@ -150,7 +150,7 @@ classdef SuiteSupportFunction < mlunitext.test_case
                     %
                     for iGoodDir = 1:size(lsGoodDirMat, 2)
                         isFound = norm(curGoodDirVec - ...
-                            lsGoodDirMat(:, iGoodDir)) <= calcPrecision;
+                            lsGoodDirMat(:, iGoodDir)) <= absTol;
                         if isFound
                             break;
                         end
@@ -182,10 +182,10 @@ classdef SuiteSupportFunction < mlunitext.test_case
                         curEllMatArray,currGoodDirMat)) +...
                         sum(curEllCenterMat .* currGoodDirMat, 1);
                     %
-                    [isOk, ~, ~, ~, ~, reportStr] = ...
+                    [isOk,~,~,~,~,reportStr]=...
                         modgen.common.absrelcompare(supFunVec(:), ...
-                        expResultMat(:), calcPrecision, calcPrecision, ...
-                        @abs);
+                        expResultMat(:),absTol,relTol,@abs);
+                    %
                     if ~isOk
                         reportResStr = horzcat('Support function values ',...
                             reportStr);
