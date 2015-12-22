@@ -10,3 +10,5 @@ function updateallconf()
 %
 confRepoMgr=gras.ellapx.uncertcalc.test.regr.conf.ConfRepoMgr();
 confRepoMgr.updateAll(true);
+confRepoMgr=gras.ellapx.uncertcalc.test.regr.conf.sysdef.ConfRepoMgr();
+confRepoMgr.updateAll(true);
