@@ -1,7 +1,7 @@
 classdef AReachProblemLTIDynamics<...
         gras.ellapx.lreachplain.probdyn.AReachProblemDynamics
     methods
-        function self=AReachProblemLTIDynamics(problemDef,calcPrecision)
+        function self=AReachProblemLTIDynamics(problemDef,relTol,absTol) %#ok<INUSD>
             %
             import modgen.cell.cellstr2func;
             import gras.gen.MatVector;
@@ -27,9 +27,10 @@ classdef AReachProblemLTIDynamics<...
                 ConstMatrixFunctionFactory.createInstance(AMat);
             self.BptDynamics = ...
                 ConstMatrixFunctionFactory.createInstance(BMat*pVec);
+            bigBPBTransMat=BMat*PMat*(BMat.');
+            bigBPBTransMat=0.5*(bigBPBTransMat+bigBPBTransMat.');
             self.BPBTransDynamics = ...
-                ConstMatrixFunctionFactory.createInstance(...
-                BMat*PMat*(BMat.'));
+                ConstMatrixFunctionFactory.createInstance(bigBPBTransMat);
         end
     end
 end

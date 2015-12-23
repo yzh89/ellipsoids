@@ -23,18 +23,21 @@ classdef ApproxProblemPropertyBuilder
     %
     methods (Static)
         function [pDynObj,goodDirSetObj] = build(confRepoMgr,...
-                sysConfRepoMgr, logger)
+                sysConfRepoMgr)
             import gras.ellapx.uncertcalc.ApproxProblemPropertyBuilder;
             import gras.ellapx.lreachuncert.probdyn.LReachProblemDynamicsFactory;
             import gras.ellapx.gen.RegProblemDynamicsFactory;
-			import gras.ellapx.lreachplain.GoodDirsContinuousFactory
+			import gras.ellapx.lreachplain.GoodDirsContinuousFactory;
+            import gras.ellapx.uncertcalc.log.Log4jConfigurator;
             %
             % we need PRECISION_FACTOR because this data is later used
             % for solving ODE which also introduces its own imprecision
             %
-            PRECISION_FACTOR = 0.1;
-            calcPrecision = confRepoMgr.getParam(...
-                'genericProps.calcPrecision')*PRECISION_FACTOR;
+            logger=Log4jConfigurator.getLogger();
+            relTol = confRepoMgr.getParam(...
+                'genericProps.relTol');
+            absTol = confRepoMgr.getParam(...
+                'genericProps.absTol');
             %
             % create problem dynamics
             %
@@ -59,13 +62,13 @@ classdef ApproxProblemPropertyBuilder
             tStart=tic;
             pDynObj = LReachProblemDynamicsFactory.createByParams(...
                 AtDefMat,BtDefMat,PtDefMat,ptDefVec,CtDefMat,...
-                QtDefMat,qtDefVec,X0DefMat,x0DefVec,tLims,calcPrecision);
+                QtDefMat,qtDefVec,X0DefMat,x0DefVec,tLims,relTol,absTol);
             pDynObj = RegProblemDynamicsFactory.create(pDynObj,...
                 isRegEnabled, isJustCheck, regTol);
             logger.info(...
-                sprintf(['building interpolation of the problem definition, ',...
-                'calc. precision=%d, time elapsed =%s sec.'],...
-                calcPrecision,num2str(toc(tStart))));
+                sprintf(['building interpolation of the problem definition,\n',...
+                '\trelTol=%g, absTol=%g,\n\ttime elapsed =%s sec.'],...
+                relTol,absTol,num2str(toc(tStart))));
             %
             % build good directions at time "s"
             %
@@ -104,11 +107,11 @@ classdef ApproxProblemPropertyBuilder
             % build good direction curves
             %
             goodDirSetObj = GoodDirsContinuousFactory.create(pDynObj,...
-                sTime,lsGoodDirMat,calcPrecision,calcPrecision);
+                sTime,lsGoodDirMat,relTol,absTol);
             logger.info(...
-                sprintf(['Building good directions at time %d, ',...
-                'calc. precision=%d, time elapsed =%s sec.'],...
-                sTime,calcPrecision,num2str(toc(tStart))));
+                sprintf(['Building good directions at time %g,\n',...
+                '\trelTol=%g, absTol=%g,\n\ttime elapsed =%s sec.'],...
+                sTime,relTol,absTol,num2str(toc(tStart))));
         end
     end
 end
