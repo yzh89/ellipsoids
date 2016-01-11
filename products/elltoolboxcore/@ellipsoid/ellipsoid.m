@@ -1,12 +1,7 @@
-classdef ellipsoid < elltool.core.AGenEllipsoid
+classdef ellipsoid < elltool.core.AEllipsoid
     %ELLIPSOID class of ellipsoids
-    properties (Access=private,Hidden)
-        centerVec
+    properties (Access=protected,Hidden)
         shapeMat
-        absTol
-        relTol
-        nPlot2dPoints
-        nPlot3dPoints
     end
     %
     methods
@@ -21,41 +16,7 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
         
     end
     %
-    methods (Access=private)
-        function checkIfScalar(self,errMsg)
-            if nargin<2
-                errMsg='input argument must be single ellipsoid.';
-            end
-            modgen.common.checkvar(self,'isscalar(x)',...
-                'errorMessage',errMsg);
-        end
-    end
     methods
-        function resArr=repMat(self,varargin)
-            % REPMAT - is analogous to built-in repmat function with one exception - it
-            %          copies the objects, not just the handles
-            %
-            % Example:
-            %   firstEllObj = ellipsoid([1; 2], eye(2));
-            %   secEllObj = ellipsoid([1; 1], 2*eye(2));
-            %   ellVec = [firstEllObj secEllObj];
-            %   repMat(ellVec)
-            %
-            %   ans =
-            %   1x2 array of ellipsoids.
-            %
-            %
-            % $Author: Peter Gagarinov <pgagarinov@gmail.com> $   $Date: 24-04-2013$
-            % $Copyright: Moscow State University,
-            %             Faculty of Computational Mathematics and Cybernetics,
-            %             Science, System Analysis Department 2012-2013 $
-            %
-            %
-            sizeVec=horzcat(varargin{:});
-            resArr=repmat(self,sizeVec);
-            resArr=resArr.getCopy();
-        end
-        %
         function resQuad = quadFunc(self)
             % QUADFUNC computes quadratic function (x,Qx) of given
             % ellipsoid.
@@ -105,35 +66,9 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
             self.checkIfScalar();
             shMat=self.shapeMat;
         end
-        %
-        function centerVecVec=getCenterVec(self)
-            % GETCENTERVEC - returns centerVec vector of given ellipsoid
-            %
-            % Input:
-            %   regular:
-            %      self: ellipsoid[1,1]
-            %
-            % Output:
-            %   centerVecVec: double[nDims,1] - centerVec of ellipsoid
-            %
-            % Example:
-            %   ellObj = ellipsoid([1; 2], eye(2));
-            %   getCenterVec(ellObj)
-            %
-            %   ans =
-            %
-            %        1
-            %        2
-            %
-            % $Author: Peter Gagarinov <pgagarinov@gmail.com> $   $Date: 24-04-2013$
-            % $Copyright: Moscow State University,
-            %             Faculty of Computational Mathematics and Cybernetics,
-            %             Science, System Analysis Department 2012-2013 $
-            self.checkIfScalar();
-            centerVecVec=self.centerVec;
-        end
     end
     methods
+        polar=getScalarPolarInternal(self,isRobustMethod)
         function [ellMat] = ellipsoid(varargin)
             %
             % ELLIPSOID - constructor of the ellipsoid object.
@@ -303,7 +238,7 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
                 % because the zero eigenvalue may be internally represented
                 % as something like -10^(-15).
                 import modgen.common.checkmultvar;
-                checkmultvar(@(aMat, aAbsTolVal)gras.la.ismatsymm(aMat)...
+                checkmultvar(@(aMat, aAbsTolVal)gras.la.ismatsymm(aMat,aAbsTolVal)...
                     &&gras.la.ismatposdef(aMat,aAbsTolVal,true), 2,...
                     shMatArray(:,:,iEll), absTolVal,...
                     'errorTag','wrongInput:shapeMat',...
@@ -335,15 +270,21 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
         [ bpMat, fMat] = ellbndr_2dmat(nPoints, cenVec, qMat,absTol)
     end
     methods(Access = private)
-        [propMat, propVal] = getProperty(hplaneMat,propName, fPropFun)
         [bpMat, fVec] = getGridByFactor(ellObj,factorVec)
         checkDoesContainArgs(ell,poly)
         doesContain = doesContainPoly(ellArr,polyhedronObj,varagin)
     end
-    methods (Static)
-        checkIsMe(someObj,varargin)
+    methods (Access=protected,Static)
+        checkIsMe(ellArr,varargin)
     end
-    
+    methods (Access=protected)
+        shapeSingleInternal(ellObj,isModScal,modMat)
+        projectionSingleInternal(ellObj,ortBasisMat)
+        function checkIsMeVirtual(ellArr,varargin)
+            ellipsoid.checkIsMe(ellArr,varargin)
+        end
+        copyEllObj=getSingleCopy(ellObj)
+    end
     methods (Access=private)
         function isArrEq = isMatEqualInternal(self,aArr,bArr)
             % ISMATEQUALINTERNAL - returns isArrEq - logical 1(true) if
@@ -375,24 +316,5 @@ classdef ellipsoid < elltool.core.AGenEllipsoid
                 isArrEq = true;
             end
         end
-    end
-    
-    methods (Access = protected, Static)
-        function SComp = formCompStruct(SEll, SFieldNiceNames, absTol, isPropIncluded)
-            if (~isempty(SEll.shapeMat))
-                SComp.(SFieldNiceNames.shapeMat) = gras.la.sqrtmpos(SEll.shapeMat, absTol);
-            else
-                SComp.(SFieldNiceNames.shapeMat) = [];
-            end
-            SComp.(SFieldNiceNames.centerVec) = SEll.centerVec;
-            if (isPropIncluded)
-                SComp.(SFieldNiceNames.absTol) = SEll.absTol;
-                SComp.(SFieldNiceNames.relTol) = SEll.relTol;
-                SComp.(SFieldNiceNames.nPlot2dPoints) = SEll.nPlot2dPoints;
-                SComp.(SFieldNiceNames.nPlot3dPoints) = SEll.nPlot3dPoints;
-            end
-        end
-    end
-    
-    
+    end 
 end

@@ -17,6 +17,8 @@ classdef ReachContinuous < elltool.reach.AReach
     properties (Constant,GetAccess=protected)
         DISPLAY_PARAMETER_STRINGS = {'continuous-time', 'k0 = ', 'k1 = '}
         LINSYS_CLASS_STRING = 'elltool.linsys.LinSysContinuous'
+        MIN_EIG_Q_REG_UNCERT = 0.1
+        DEFAULT_INTAPX_S_SELECTION_MODE = 'volume'        
     end
     %
     properties (Constant, GetAccess = private)
@@ -62,8 +64,9 @@ classdef ReachContinuous < elltool.reach.AReach
     end
     %
     methods (Access = private)
-        function [ellTubeRel,goodDirSetObj] = auxMakeEllTubeRel(self, probDynObj, ...
-                l0Mat, timeVec, isDisturb,absTol,relTol,approxTypeVec)
+        function [ellTubeRel,goodDirSetObj] = auxMakeEllTubeRel(self,...
+                probDynObj,l0Mat, timeVec, isDisturb,absTol,relTol,...
+                approxTypeVec)
             import gras.ellapx.enums.EApproxType;
             import gras.ellapx.lreachplain.GoodDirsContinuousFactory;
             import modgen.common.throwerror;
@@ -94,14 +97,14 @@ classdef ReachContinuous < elltool.reach.AReach
                         gras.ellapx.lreachplain.ExtEllApxBuilder(...
                         probDynObj, goodDirSetObj, timeVec,...
                         self.relTol, self.absTol);
-                    extellTubeBuilder =...
+                    extEllTubeBuilder =...
                         gras.ellapx.gen.EllApxCollectionBuilder(...
                         {extBuilder});
-                    extEllTubeRel = extellTubeBuilder.getEllTubes();
+                    extEllTubeRel = extEllTubeBuilder.getEllTubes();
                     if ~isIntApprox
                         ellTubeRel = extEllTubeRel;
                     end
-                end
+                end                
                 if isIntApprox
                     intBuilder =...
                         gras.ellapx.lreachplain.IntEllApxBuilder(...
@@ -109,15 +112,15 @@ classdef ReachContinuous < elltool.reach.AReach
                         self.relTol, self.absTol,...
                         'selectionMethodForSMatrix',...
                         self.DEFAULT_INTAPX_S_SELECTION_MODE);
-                    intellTubeBuilder =...
+                    intEllTubeBuilder =...
                         gras.ellapx.gen.EllApxCollectionBuilder(...
                         {intBuilder});
-                    intEllTubeRel = intellTubeBuilder.getEllTubes();
+                    intEllTubeRel = intEllTubeBuilder.getEllTubes();
                     if isExtApprox
                         intEllTubeRel.unionWith(extEllTubeRel);
                     end
                     ellTubeRel = intEllTubeRel;
-                end
+                end                
             end
         end
         %
@@ -178,26 +181,13 @@ classdef ReachContinuous < elltool.reach.AReach
             end
         end
         %
-        function probDefConstr = getProbDynamicsBuilder (self, ...
-                isDisturbance, ~)
-            %
-            % input argument varargin{end - 1} is a 'timevec'; we transform 
-            % it to [min(varargin{end-1}) max(varargin{end-1})] for 
-            % Continuous systems
-            %
-            if (~isDisturbance)
-                probDefConstr = @(varargin)gras.ellapx.lreachplain. ...
-                    probdyn.LReachProblemDynamicsFactory. ...
-                    createByParams (varargin{1:end - 2}, ...
-                        [min(varargin{end-1}) max(varargin{end-1})], ...
-                        varargin{end});
-            elseif (isDisturbance)
-                probDefConstr = @(varargin)gras.ellapx.lreachuncert. ...
-                    probdyn.LReachProblemDynamicsFactory. ...
-                    createByParams (varargin{1:end - 2}, ...
-                        [min(varargin{end-1}) max(varargin{end-1})], ...
-                        varargin{end});
-            end
+        function linSys = getProbDynamics(self,atStrCMat,btStrCMat,...
+                ptStrCMat,ptStrCVec,ctStrCMat,qtStrCMat,qtStrCVec, x0Mat,...
+                x0Vec,timeLimVec,relTol,absTol) %#ok<INUSL>
+            linSys = gras.ellapx.lreachuncert.probdyn. ...
+                LReachProblemDynamicsFactory.createByParams(atStrCMat,...
+                btStrCMat,ptStrCMat,ptStrCVec,ctStrCMat,qtStrCMat,...
+                qtStrCVec, x0Mat,x0Vec,timeLimVec,relTol,absTol);
         end
         %
     end
@@ -252,7 +242,7 @@ classdef ReachContinuous < elltool.reach.AReach
             %           initial conditions.
             %       l0Mat: double[nRows, nColumns] - initial good directions
             %           matrix.
-            %       timeVec: double[1, 2] - time interval.
+            %       timeLimVec: double[1, 2] - time interval.
             %
             %     properties:
             %       isRegEnabled: logical[1, 1] - if it is 'true' constructor
@@ -273,9 +263,9 @@ classdef ReachContinuous < elltool.reach.AReach
             %   SUBounds.shape = [9 0; 0 2];
             %   sys = elltool.linsys.LinSysContinuous(aMat, bMat, SUBounds);
             %   x0EllObj = ell_unitball(2);
-            %   timeVec = [0 10];
+            %   timeLimVec = [0 10];
             %   dirsMat = [1 0; 0 1]';
-            %   rsObj = elltool.reach.ReachContinuous(sys, x0EllObj, dirsMat, timeVec);
+            %   rsObj = elltool.reach.ReachContinuous(sys, x0EllObj, dirsMat, timeLimVec);
             %
             % $Author: Kirill Mayantsev
             % <kirill.mayantsev@gmail.com> $

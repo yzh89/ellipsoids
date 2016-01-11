@@ -1,10 +1,8 @@
-classdef hyperplane < elltool.core.AGenEllipsoid
+classdef hyperplane < elltool.core.ABasicEllipsoid
     %HYPERPLANE - a class for hyperplanes
     properties (Access=private)
         normal
         shift
-        absTol
-        relTol
     end
     %
     methods
@@ -227,19 +225,17 @@ classdef hyperplane < elltool.core.AGenEllipsoid
         end
     end
     methods (Static)
-        checkIsMe(someObj)
         hpArr = fromRepMat(varargin)
         hpObj = fromStruct(SHpObj)
     end
-    
-    methods (Access = protected, Static)
-        function SComp = formCompStruct(SHp, SFieldNiceNames, ~, isPropIncluded)
-            SComp.(SFieldNiceNames.normal) = SHp.normal;
-            SComp.(SFieldNiceNames.shift) = SHp.shift;
-            if (isPropIncluded)
-                SComp.(SFieldNiceNames.absTol) = SHp.absTol;
-            end
+    methods (Access=protected,Static)
+        checkIsMe(ellArr,varargin)
+    end
+    methods (Access=protected)
+        function checkIsMeVirtual(ellArr,varargin)
+            hyperplane.checkIsMe(ellArr,varargin)
         end
+        copyEllObj=getSingleCopy(ellObj)
     end
 end
 %

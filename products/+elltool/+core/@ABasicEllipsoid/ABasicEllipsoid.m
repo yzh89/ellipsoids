@@ -1,0 +1,29 @@
+classdef ABasicEllipsoid < handle
+    properties(Access=protected) 
+        absTol
+        relTol 
+    end
+    %
+    methods(Abstract)
+        [dimArr,rankArr]=dimension(myEllArr)
+    end
+    methods(Access=protected)
+        checkIfScalar(self,errMsg)
+        [isEqualArr,reportStr]=isEqualInternal(ellFirstArr,...
+            ellSecArr,isPropIncluded)
+    end
+    methods(Static)
+        checkIsMeInternal(objType,ellArr,varargin)
+    end
+    methods(Access=protected,Abstract)
+        checkIsMeVirtual(ellArr,varargin)
+        copyEllObj=getSingleCopy(ellObj)
+    end
+    methods 
+        ellArr=repMat(ellObj,sizeVec)
+        [absTolArr,absTolVal]=getAbsTol(ellArr,varargin)
+        [relTolArr,relTolVal]=getRelTol(ellArr,varargin)
+        copyEllArr=getCopy(ellArr)
+        isPositiveArr=isEmpty(myEllArr)
+    end
+end
