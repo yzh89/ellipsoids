@@ -1377,6 +1377,23 @@ classdef AReach < elltool.reach.IReach
             cutObj.isCut = true;
         end
         %
+        function copyReachObjArr = getCopyWithCenterModified(self,center)
+            % Input:
+            %   regular:
+            %       self:
+            %   properties:
+            %       center: the modification to the center of the ellipsoid
+            %           used for linearization of nonlinear dyanmics
+            copyReachObjArr = getCopy(self);
+            curTube = copyReachObjArr.ellTubeRel;
+            for i = 1:length(curTube.aMat)
+               curTube.aMat{i} = curTube.aMat{i}+ center';
+            end
+            copyReachObjArr.ellTubeRel = curTube;           
+            
+        end
+        
+        
         function copyReachObjArr = getCopy(self,varargin)
             % Input:
             %   regular:
